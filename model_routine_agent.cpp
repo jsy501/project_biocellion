@@ -33,16 +33,16 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 		VReal vOffset;
 		SpAgentState state;
 
-		vidx[0] = regionSize[0]/2;
-		vidx[1] = regionSize[1]/2;
-		vidx[2] = regionSize[2]/2;
+		vidx[0] = regionSize[0]/2 - 1;
+		vidx[1] = regionSize[1]/2 - 1;
+		vidx[2] = regionSize[2]/2 - 1;
 
 		vOffset[0] = 0.5 * IF_GRID_SPACING;
 		vOffset[1] = 0.5 * IF_GRID_SPACING;
 		vOffset[2] = 0.5 * IF_GRID_SPACING;
 
-		state.setType(CELL_TYPE_C);
-		state.setRadius(A_CELL_RADIUS[CELL_TYPE_C]);
+		state.setType(CELL_TYPE_LTO);
+		state.setRadius(A_CELL_RADIUS[CELL_TYPE_LTO]);
 
 		CHECK(ifGridHabitableBoxData.get(vidx) == true);
 		v_spAgentVIdx.push_back(vidx);
@@ -118,8 +118,8 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 	S32 type = state.getType();
 
-	if (A_CELL_DIFFUSION_COEFF[type] > 0.0){
-
+	/* move randomly if the cell is not connected to any other cells */
+	if (A_CELL_DIFFUSION_COEFF[type] > 0.0 && junctionData.getNumJunctions() == 0){
 		REAL f_prw = SQRT(2 * A_CELL_DIFFUSION_COEFF[type] * BASELINE_TIME_STEP_DURATION);
 		for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
 			disp[dim] = f_prw * Util::getModelRand(MODEL_RNG_GAUSSIAN);

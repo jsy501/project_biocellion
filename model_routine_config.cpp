@@ -33,6 +33,10 @@ void ModelRoutine::updateIfGridSpacing( REAL& ifGridSpacing ) {
 void ModelRoutine::updateOptModelRoutineCallInfo( OptModelRoutineCallInfo& callInfo ) {
 	/* MODEL START */
 
+	callInfo.numComputeMechIntrctIters = 1;
+	callInfo.numUpdateIfGridVarPreStateAndGridStepIters = 0;
+	callInfo.numUpdateIfGridVarPostStateAndGridStepIters = 0;
+
 	/* MODEL END */
 
 	return;
@@ -74,7 +78,7 @@ void ModelRoutine::updateTimeStepInfo( TimeStepInfo& timeStepInfo ) {
 void ModelRoutine::updateSyncMethod( sync_method_e& mechIntrctSyncMethod, sync_method_e& updateIfGridVarSyncMethod/* dummy if both callUpdateIfGridVarPreStateAndGridStep and callUpdateIfGridVarPostStateAndGridStep are set to false in ModelRoutine::updateOptModelRoutineCallInfo */ ) {
 	/* MODEL START */
 
-	mechIntrctSyncMethod = SYNC_METHOD_PER_ATTR;
+	mechIntrctSyncMethod = SYNC_METHOD_PER_ATTR; /* Sync per attribute*/
 	updateIfGridVarSyncMethod = SYNC_METHOD_PER_ATTR;
 
 	/* MODEL END */
@@ -86,16 +90,37 @@ void ModelRoutine::updateSyncMethod( sync_method_e& mechIntrctSyncMethod, sync_m
 void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* set the mechanical interaction range & the numbers of model specific variables */
 	/* MODEL START */
 
+	MechModelVarInfo modelVarInfo;
+
+	/*
+	If this option is selected, the differences from the initial
+	value are summed—e.g. if three different model routines set the value of variable a to
+	3, 5, and 9, respectively, then a is set to 3 + 5 + 9 (assuming that the initial value is 0).
+	*/
+	modelVarInfo.syncMethod = VAR_SYNC_METHOD_DELTA;
+
 	v_spAgentInfo.resize(NUM_CELL_TYPES);
 
 	for (S32 i = 0; i < NUM_CELL_TYPES; i++){
 		SpAgentInfo info;
 
-		info.dMax = IF_GRID_SPACING;
+		info.dMax = A_CELL_D_MAX[i]; /* maximum direct physio-mechanical interaction distance */
+
+		/*
+		The interface grid spacing should be equal to or larger than the maximum
+		direct physico-mechanical interaction distance between any two discrete agents.
+		*/
+		CHECK( info.dMax <= IF_GRID_SPACING );
+
 		info.numBoolVars = 0;
                 info.numStateModelReals = 0;
                 info.numStateModelInts = 0;
-                info.v_mechIntrctModelRealInfo.clear();
+
+		/*
+		Provide the information about model specific REAL type temporary mechanical
+		interaction state attributes for this discrete agent type.
+		*/
+                info.v_mechIntrctModelRealInfo.assign(NUM_CELL_MECH_REALS, modelVarInfo);
                 info.v_mechIntrctModelIntInfo.clear();
                 info.v_odeNetInfo.clear();
 
@@ -111,7 +136,13 @@ void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* s
 void ModelRoutine::updateJunctionEndInfo( Vector<JunctionEndInfo>& v_junctionEndInfo ) {/* set the numbers of model specific variables */
 	/* MODEL START */
 
-	v_junctionEndInfo.clear();
+	v_junctionEndInfo.resize(NUM_JUNCTION_END_TYPES);
+
+	v_junctionEndInfo[JUNCTION_END_TYPE_A].numModelReals = NUM_JUNCTION_END_TYPE_A_MODEL_REAL;
+	v_junctionEndInfo[JUNCTION_END_TYPE_A].numModelInts = 0;
+
+	v_junctionEndInfo[JUNCTION_END_TYPE_B].numModelReals = NUM_JUNCTION_END_TYPE_B_MODEL_REAL;
+	v_junctionEndInfo[JUNCTION_END_TYPE_B].numModelInts = 0;
 
 	/* MODEL END */
 

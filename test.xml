@@ -22,14 +22,14 @@ Biocellion has three main components.
 <!-- domain, parameters describing the simulation domain
 x(, y, or z): simulation grid size in the x(, y, or z) direction, x(, y, or z) % partition_size must be zero or equal to or larger than max(4 (minimum partition size), refine_ratio^(number of AMR levels - 1) * 2 (minimum box size)), and x(, y, or z) should be an integer multiple of refine_ratio^(number of AMR levels - 1), required, integer, [4,)
 -->
-<domain x="64" y="64" z="4"/>
+<domain x="32" y="32" z="4"/>
 <!-- init_data, parameters related to initial cell and grid data, required
         partition_size: partition size, partition_size should be equl to or larger than 4 (minimum parition size), positive integer multiple of refine_ratio^(interface grid level in AMR), and equal to or larger than refine_ratio^(interface grid level in AMR) * 2 (minimum box sizse), required, integer, [4,)
         src: initial cell and grid data source, set to code to initialize inside the model code, set to file to read from files, required, code|file
         file_type: valid only when src is set to file. input data file type, set to binary if input data files have the Biocellion binary format (currently only this option is supported), required, binary
         path: valid only when src is set to file. path to the directory containing input data files, required, text
 -->
-<init_data partition_size="64" src="code"/>
+<init_data partition_size="32" src="code"/>
 
 <!-- output, parameters related to output data, required
         path: path to the directory to dump output data files, required, text
@@ -39,7 +39,7 @@ x(, y, or z): simulation grid size in the x(, y, or z) direction, x(, y, or z) %
         start_x(, y, or z): output box offset in the x(, y, or z) direction, must be an integer multiple of refine_ratio^(number of AMR levels - 1), required, integer, [1,)
         size_x(, y, or z): output box size in the x(, y, or z) direction, must be an integer multiple of refine_ratio^(number of AMR levels - 1), required, integer, [1,)
 -->
-<output path="./output" interval="1" particle="pvtp" grid="vthb" start_x="0" start_y="0" start_z="0" size_x="64" size_y="64" size_z="4"/>
+<output path="./output" interval="1" particle="pvtp" grid="vthb" start_x="0" start_y="0" start_z="0" size_x="32" size_y="32" size_z="4"/>
 
 </required>
 
@@ -70,7 +70,7 @@ x(, y, or z): simulation grid size in the x(, y, or z) direction, x(, y, or z) %
 <!-- super_partition, sets super partition size
 	x(, y, or z): super partition size in the direction of x(, y, or z), a larger value reduces the communication requirement between node groups at the expense of lower parallelism, this number should be an integer multiple of partition_size, optional, default=the smallest integer multiple of partition_size that is equal to or larger than x(, y, or z) (of domain), integer, [1,)
 -->
-<super_partition x="64" y="64" z="64"/>
+<super_partition x="32" y="32" z="32"/>
 
 <!-- interval, controls the frequency of summary report, load balancing, regridding and checkpointing, optional
 	summary: summary report interval (0: turn off, unit: baseline time steps), optional, default=0, integer, [0,)

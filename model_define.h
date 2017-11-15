@@ -24,6 +24,25 @@ enum cell_type_e {
   NUM_CELL_TYPES
 };
 
+enum cell_model_lto_int_e{
+        CELL_MODEL_LTO_LTI_BIND_COUNT,
+        CELL_MODEL_LTO_LTIN_BIND_COUNT,
+        NUM_CELL_MODEL_LTO_INTS
+};
+
+enum cell_model_lto_real_e{
+        CELL_MODEL_LTO_CHEMO_EXP_LVL,
+        NUM_CELL_MODEL_LTO_REALS
+};
+
+enum cell_model_lti_real_e{
+        NUM_CELL_MODEL_LTI_REALS
+};
+
+enum cell_model_ltin_real_e{
+        NUM_CELL_MODEL_LTIN_REALS
+};
+
 enum cell_mech_real_e{
         CELL_MECH_REAL_FORCE_X,
         CELL_MECH_REAL_FORCE_Y,
@@ -32,21 +51,11 @@ enum cell_mech_real_e{
 };
 
 enum junction_end_type_e{
-        JUNCTION_END_TYPE_A, /* junction between LTi/LTin cell and LTo cell, LTi/LTin side. */
-        JUNCTION_END_TYPE_B, /* junction between LTi/LTin cell and LTo cell, LTo side. */
+        JUNCTION_END_TYPE_LTIN_TO_LTO, /* junction between LTin cell and LTo cell, LTin side. */
+        JUNCTION_END_TYPE_LTO_TO_LTIN, /* junction between LTin cell and LTo cell, LTo side. */
+        JUNCTION_END_TYPE_LTI_TO_LTO, /* junction between LTi cell and LTo cell, LTi side. */
+        JUNCTION_END_TYPE_LTO_TO_LTI, /* junction between LTi cell and LTo cell, LTo side. */
         NUM_JUNCTION_END_TYPES
-};
-
-enum junction_end_type_a_model_real_e {
-        // JUNCTION_END_TYPE_A_MODEL_REAL_DIST,
-        // JUNCTION_END_TYPE_A_MODEL_REAL_DIR_X,
-        // JUNCTION_END_TYPE_A_MODEL_REAL_DIR_Y,
-        // JUNCTION_END_TYPE_A_MODEL_REAL_DIR_Z,
-        NUM_JUNCTION_END_TYPE_A_MODEL_REAL
-};
-
-enum junction_end_type_b_model_real_e {
-        NUM_JUNCTION_END_TYPE_B_MODEL_REAL
 };
 
 enum model_rng_type_e {
@@ -55,13 +64,17 @@ enum model_rng_type_e {
   NUM_MODEL_RNGS
 };
 
-const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 100, 100, 1 };
-const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = {2.0, 2.0, 5.0};
-const REAL A_CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = {0.5, 0.5, 0};
-const REAL A_CELL_D_MAX[NUM_CELL_TYPES] = {10.0, 10.0, 10.0};
+const S32 INI_N_CELLS[NUM_CELL_TYPES] = { 500, 500, 1 };
+const REAL CELL_RADIUS[NUM_CELL_TYPES] = {2.0, 2.0, 6.0};
+const REAL CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = {0.05, 0.05, 0};
+const REAL CELL_D_MAX[NUM_CELL_TYPES] = {3.0, 3.0, 10.0};
 
-const REAL A_CELL_ADHESION = 0.5; /* cell adhesion constant*/
-const REAL A_CELL_SPRING_CONSTANT = 0.1; /*cell shoving constant*/
+const REAL CHEMO_EXP_LVL = 3.0;
+const REAL CHEMO_THRESHOLD = 0.3;
+const REAL SIGMOID_CURVE_ADJ_CONSTANT = 3.0;
+
+const REAL CELL_ADHESION_CONSTANT = 0.8; /* cell adhesion constant*/
+const REAL CELL_SPRING_CONSTANT = 0.3; /*cell shoving constant*/
 
 const REAL IF_GRID_SPACING = 10.0;
 

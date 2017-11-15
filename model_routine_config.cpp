@@ -68,7 +68,7 @@ void ModelRoutine::updateTimeStepInfo( TimeStepInfo& timeStepInfo ) {
 	/* MODEL START */
 
 	timeStepInfo.durationBaselineTimeStep = BASELINE_TIME_STEP_DURATION;
-	timeStepInfo.numStateAndGridTimeStepsPerBaseline = NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE;
+	timeStepInfo.numStateAndGridTimeStepsPerBaseline = 1;
 
 	/* MODEL END */
 
@@ -104,17 +104,27 @@ void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* s
 	for (S32 i = 0; i < NUM_CELL_TYPES; i++){
 		SpAgentInfo info;
 
-		info.dMax = A_CELL_D_MAX[i]; /* maximum direct physio-mechanical interaction distance */
+		info.dMax = CELL_D_MAX[i]; /* maximum direct physio-mechanical interaction distance */
 
 		/*
 		The interface grid spacing should be equal to or larger than the maximum
 		direct physico-mechanical interaction distance between any two discrete agents.
 		*/
-		CHECK( info.dMax <= IF_GRID_SPACING );
+		// CHECK( info.dMax <= IF_GRID_SPACING );
 
 		info.numBoolVars = 0;
-                info.numStateModelReals = 0;
-                info.numStateModelInts = 0;
+		info.numStateModelInts = 0;
+
+		if (i == CELL_TYPE_LTO){
+			info.numStateModelInts = NUM_CELL_MODEL_LTO_INTS;
+	                info.numStateModelReals = NUM_CELL_MODEL_LTO_REALS;
+		}
+		else if (i == CELL_TYPE_LTI){
+			info.numStateModelReals = NUM_CELL_MODEL_LTI_REALS;
+		}
+		else if (i == CELL_TYPE_LTIN){
+			info.numStateModelReals = NUM_CELL_MODEL_LTIN_REALS;
+		}
 
 		/*
 		Provide the information about model specific REAL type temporary mechanical
@@ -138,11 +148,17 @@ void ModelRoutine::updateJunctionEndInfo( Vector<JunctionEndInfo>& v_junctionEnd
 
 	v_junctionEndInfo.resize(NUM_JUNCTION_END_TYPES);
 
-	v_junctionEndInfo[JUNCTION_END_TYPE_A].numModelReals = NUM_JUNCTION_END_TYPE_A_MODEL_REAL;
-	v_junctionEndInfo[JUNCTION_END_TYPE_A].numModelInts = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTI_TO_LTO].numModelReals = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTI_TO_LTO].numModelInts = 0;
 
-	v_junctionEndInfo[JUNCTION_END_TYPE_B].numModelReals = NUM_JUNCTION_END_TYPE_B_MODEL_REAL;
-	v_junctionEndInfo[JUNCTION_END_TYPE_B].numModelInts = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTI].numModelReals = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTI].numModelInts = 0;
+
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTIN_TO_LTO].numModelReals = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTIN_TO_LTO].numModelInts = 0;
+
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTIN].numModelReals = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTIN].numModelInts = 0;
 
 	/* MODEL END */
 

@@ -33,14 +33,17 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 			VReal vOffset;
 			SpAgentState state;
 
-			vidx[0] = regionSize[0] * Util::getModelRand(MODEL_RNG_UNIFORM) - 1;
-			vidx[1] = regionSize[1] * Util::getModelRand(MODEL_RNG_UNIFORM) - 1;
-			vidx[2] = regionSize[2] * Util::getModelRand(MODEL_RNG_UNIFORM) - 1;
+			/* randomly place cells in one of the unit grid boxes*/
+			vidx[0] = (regionSize[0] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+			vidx[1] = (regionSize[1] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+			vidx[2] = (regionSize[2] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
 
-			// vOffset[0] = 0.5 * IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
-			// vOffset[1] = 0.5 * IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
-			// vOffset[2] = 0.5 * IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
+			/* randomly distribute cells within the unit grid box, (0,0,0) being the centre of the box */
+			vOffset[0] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+			vOffset[1] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+			vOffset[2] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
 
+			/* set cell parameters */
 			state.setType(CELL_TYPE_LTI);
 			state.setRadius(CELL_RADIUS[CELL_TYPE_LTI]);
 
@@ -55,13 +58,13 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 			VReal vOffset;
 			SpAgentState state;
 
-			vidx[0] = regionSize[0] * Util::getModelRand(MODEL_RNG_UNIFORM) - 1;
-			vidx[1] = regionSize[1] * Util::getModelRand(MODEL_RNG_UNIFORM) - 1;
-			vidx[2] = regionSize[2] * Util::getModelRand(MODEL_RNG_UNIFORM) - 1;
+			vidx[0] = (regionSize[0] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+			vidx[1] = (regionSize[1] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+			vidx[2] = (regionSize[2] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
 
-			// vOffset[0] = 0.5 * IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
-			// vOffset[1] = 0.5 * IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
-			// vOffset[2] = 0.5 * IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
+			vOffset[0] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+			vOffset[1] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+			vOffset[2] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
 
 			state.setType(CELL_TYPE_LTIN);
 			state.setRadius(CELL_RADIUS[CELL_TYPE_LTIN]);

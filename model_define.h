@@ -18,10 +18,10 @@ NOTICE:  These data were produced by Battelle Memorial Institute (BATTELLE) unde
 /* MODEL START */
 
 enum cell_type_e {
-  CELL_TYPE_LTI, //LTi cell
-  CELL_TYPE_LTIN, //LTin cell
-  CELL_TYPE_LTO, //LTo cell
-  NUM_CELL_TYPES
+        CELL_TYPE_LTI,
+        CELL_TYPE_LTIN,
+        CELL_TYPE_LTO,
+        NUM_CELL_TYPES
 };
 
 enum cell_model_lto_int_e{
@@ -35,14 +35,17 @@ enum cell_model_lto_real_e{
         NUM_CELL_MODEL_LTO_REALS
 };
 
+/* not used at the moment */
 enum cell_model_lti_real_e{
         NUM_CELL_MODEL_LTI_REALS
 };
 
+/* not used at the moment */
 enum cell_model_ltin_real_e{
         NUM_CELL_MODEL_LTIN_REALS
 };
 
+/* used for storing cell shoving force */
 enum cell_mech_real_e{
         CELL_MECH_REAL_FORCE_X,
         CELL_MECH_REAL_FORCE_Y,
@@ -59,9 +62,28 @@ enum junction_end_type_e{
 };
 
 enum model_rng_type_e {
-  MODEL_RNG_UNIFORM,
-  MODEL_RNG_GAUSSIAN,
-  NUM_MODEL_RNGS
+        MODEL_RNG_UNIFORM,
+        MODEL_RNG_GAUSSIAN,
+        NUM_MODEL_RNGS
+};
+
+
+/* summary output variables for getting information of LTo in agent update routines */
+enum summary_type_real_e {
+        /* position of LTo cell from origin(bottom left corner of the grid) */
+        SUMMARY_REAL_LTO_POS_X,
+        SUMMARY_REAL_LTO_POS_Y,
+        SUMMARY_REAL_LTO_POS_Z,
+
+        /* chemokine expression level of LTo cell */
+        SUMMARY_REAL_LTO_CHEMO_EXP_LVL,
+        NUM_SUMMARY_REALS
+};
+
+enum summary_type_int_e{
+        SUMMARY_INT_LTO_LTI_BIND_COUNT,
+        SUMMARY_INT_LTO_LTIN_BIND_COUNT,
+        NUM_SUMMARY_INTS
 };
 
 const S32 INI_N_CELLS[NUM_CELL_TYPES] = { 500, 500, 1 };
@@ -69,9 +91,11 @@ const REAL CELL_RADIUS[NUM_CELL_TYPES] = {2.0, 2.0, 6.0};
 const REAL CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = {0.05, 0.05, 0};
 const REAL CELL_D_MAX[NUM_CELL_TYPES] = {3.0, 3.0, 10.0};
 
-const REAL CHEMO_EXP_LVL = 3.0;
-const REAL CHEMO_THRESHOLD = 0.3;
-const REAL SIGMOID_CURVE_ADJ_CONSTANT = 3.0;
+const REAL LTO_CHEMO_EXP_MIN = 0.2; /* chemokine expression level for one LTi bind, therefore min */
+const REAL LTO_CHEMO_EXP_MAX = 0.04; /* chemokine expression level for fully saturated LTi bind, therefore max */
+const REAL LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT = 0.005; /* increase amount in LTo chemokine expression for every new LTi bind */
+const REAL LTI_CHEMO_THRESHOLD = 0.3; /* threshold that LTi cells react to chemokine */
+const REAL SIGMOID_CONSTANT = 10.0; /* sigmoid constand for adjusting the curve to meet y axis */
 
 const REAL CELL_ADHESION_CONSTANT = 0.8; /* cell adhesion constant*/
 const REAL CELL_SPRING_CONSTANT = 0.3; /*cell shoving constant*/

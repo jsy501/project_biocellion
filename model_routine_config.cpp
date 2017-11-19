@@ -229,6 +229,35 @@ void ModelRoutine::updateFileOutputInfo( FileOutputInfo& fileOutputInfo ) {
 void ModelRoutine::updateSummaryOutputInfo( Vector<SummaryOutputInfo>& v_summaryOutputRealInfo, Vector<SummaryOutputInfo>& v_summaryOutputIntInfo ) {
 	/* MODEL START */
 
+	SummaryOutputInfo info;
+
+	v_summaryOutputIntInfo.resize(NUM_SUMMARY_INTS);
+	v_summaryOutputRealInfo.resize(NUM_SUMMARY_REALS);
+
+	info.name = "LToLTiBindCount";
+	info.type = SUMMARY_TYPE_MAX;
+	v_summaryOutputIntInfo[SUMMARY_INT_LTO_LTI_BIND_COUNT] = info;
+
+	info.name = "LToLTinBindCount";
+	info.type = SUMMARY_TYPE_MAX;
+	v_summaryOutputIntInfo[SUMMARY_INT_LTO_LTIN_BIND_COUNT] = info;
+
+	info.name = "LToPosX";
+	info.type = SUMMARY_TYPE_MAX;
+	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_POS_X] = info;
+
+	info.name = "LToPosY";
+	info.type = SUMMARY_TYPE_MAX;
+	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_POS_Y] = info;
+
+	info.name = "LToPosZ";
+	info.type = SUMMARY_TYPE_MAX;
+	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_POS_Z] = info;
+
+	info.name = "LToChemoExpLvl";
+	info.type = SUMMARY_TYPE_MIN;
+	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_CHEMO_EXP_LVL] = info;
+
 	/* MODEL END */
 
 	return;

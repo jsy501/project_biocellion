@@ -46,6 +46,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 			/* set cell parameters */
 			state.setType(CELL_TYPE_LTI);
 			state.setRadius(CELL_RADIUS[CELL_TYPE_LTI]);
+			state.setModelReal(CELL_MODEL_LTI_SPEED, Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND);
 
 			CHECK(ifGridHabitableBoxData.get(vidx) == true);
 			v_spAgentVIdx.push_back(vidx);
@@ -68,6 +69,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 			state.setType(CELL_TYPE_LTIN);
 			state.setRadius(CELL_RADIUS[CELL_TYPE_LTIN]);
+			state.setModelReal(CELL_MODEL_LTIN_SPEED, Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND);
 
 			CHECK(ifGridHabitableBoxData.get(vidx) == true);
 			v_spAgentVIdx.push_back(vidx);
@@ -93,9 +95,13 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 		state.setType(CELL_TYPE_LTO);
 		state.setRadius(CELL_RADIUS[CELL_TYPE_LTO]);
+		state.setModelReal(CELL_MODEL_LTO_SPEED, 0);	// Assumes that LTo cell does not move
 		state.setModelReal(CELL_MODEL_LTO_CHEMO_EXP_LVL, LTO_CHEMO_EXP_MIN);
-		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT, 0);
-		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT, 0);
+		state.setModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL, LTO_INITIAL_ADHESION_LVL);
+		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV, 0);
+		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, 0);
+		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, 0);
+		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, 0);
 
 		CHECK(ifGridHabitableBoxData.get(vidx) == true);
 		v_spAgentVIdx.push_back(vidx);
@@ -121,8 +127,13 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 
 	/* count the number of Lti/Ltin bind to Lto and modify state of Lto */
 	if (state.getType() == CELL_TYPE_LTO){
+		S32 previousLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV);
+		S32 previousLtinBindCount = state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV);
+		S32 totalLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL);
+		S32 totalLtinBindCount = state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL);
 		S32 ltiBindCount = 0;
 		S32 ltinBindCount = 0;
+
 		for (S32 i = 0; i < junctionData.getNumJunctions(); i++){
 			junctionEndType_t type = junctionData.getJunctionEndRef(i).getType();
 			if (type == JUNCTION_END_TYPE_LTO_TO_LTI){
@@ -132,11 +143,33 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 				ltinBindCount++;
 			}
 		}
-		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT, ltiBindCount);
-		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT, ltinBindCount);
 
-		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT * ltiBindCount;
+		/* overwrite current count to previous count */
+		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV, ltiBindCount);
+		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, ltinBindCount);
 
+		/* if bind count increased from previous step, add the difference to vcam count*/
+		if (previousLtiBindCount < ltiBindCount){
+			totalLtiBindCount += ltiBindCount - previousLtiBindCount;
+		}
+		if (previousLtinBindCount < ltinBindCount){
+			totalLtinBindCount += ltinBindCount - previousLtinBindCount;
+		}
+
+		/* update total count */
+		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL, totalLtiBindCount);
+		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, totalLtinBindCount);
+
+		REAL adhesionLvl = VCAM_SLOPE * VCAM_INCREMENT * (totalLtiBindCount + totalLtinBindCount);
+
+		if (adhesionLvl > MAX_VCAM_PROBABILITY_THRESHOLD){
+			adhesionLvl = MAX_VCAM_PROBABILITY_THRESHOLD;
+		}
+
+		state.setModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL, adhesionLvl);
+
+		/* equation for chemokine expression of LTo cell */
+		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT * totalLtiBindCount;
 		if (chemoLvl > -LTO_CHEMO_EXP_MAX){
 			chemoLvl = -LTO_CHEMO_EXP_MAX;
 		}
@@ -171,15 +204,29 @@ void ModelRoutine::updateSpAgentBirthDeath( const VIdx& vIdx, const SpAgent& spA
 void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junctionData, const VReal& vOffset, const MechIntrctData& mechIntrctData, const NbrUBEnv& nbrUBEnv, SpAgentState& state/* INOUT */, VReal& disp ) {/* if not dividing or disappearing */
 	/* MODEL START */
 
-	S32 type = state.getType();
+	agentType_t type = state.getType();
 
+	/* get cell speed */
+	REAL speed;
+	switch (type){
+		case CELL_TYPE_LTO:
+		speed = state.getModelReal(CELL_MODEL_LTO_SPEED);
+		break;
 
+		case CELL_TYPE_LTI:
+		speed = state.getModelReal(CELL_MODEL_LTI_SPEED);
+		break;
 
-	/* move randomly if the cell is not connected to any other cells */
-	if (CELL_DIFFUSION_COEFF[type] > 0.0 && junctionData.getNumJunctions() == 0){
+		case CELL_TYPE_LTIN:
+		speed = state.getModelReal(CELL_MODEL_LTIN_SPEED);
+		break;
+	}
 
-		/* if the current cell is LTi and there is more than one LTo-LTin bind present */
-		if (type == CELL_TYPE_LTI && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTIN_BIND_COUNT) > 0){
+	/* move if the cell is not connected to any other cells */
+	if (speed > 0 && junctionData.getNumJunctions() == 0){
+
+		/* if the current cell is LTi and there was at least one LTo-LTin bond and one LTo-LTi bond formed before, move LTi cell towards LTo cell under the effect of chemokine*/
+		if (type == CELL_TYPE_LTI && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTIN_BIND_COUNT) > 0 && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTI_BIND_COUNT) > 0){
 			VReal ltoPos;
 			VReal ltiPos;
 			VReal dir;
@@ -193,37 +240,83 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 			dir = ltoPos - ltiPos;
 
+			/* equation for chemokine level at the position of the LTi cell */
 			REAL chemoLvl = 1 / (1 + exp(-(ltoChemoExpLvl * dir.length() + SIGMOID_CONSTANT)));
 
+			/* if chemokine expression is higher than the minimum threshold that Lti cells respond to */
 			if (chemoLvl > LTI_CHEMO_THRESHOLD){
 				VReal normDir = dir.normalize(0, dir); /* normalised direction vector from LTi to LTo */
 
-				/* add attraction force to cell with probability model*/
+				/* add attraction movement to cell with probability model*/
 				if (chemoLvl >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-
-					REAL force = SQRT(2 * CELL_DIFFUSION_COEFF[type] * BASELINE_TIME_STEP_DURATION);
-
 					for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
-						disp[dim] += force * normDir[dim];
+						disp[dim] += speed * normDir[dim];
 					}
 				}
 			}
+
+			/* if lower than minimum threshold, move randomly */
+			else {
+				VReal dir;
+
+				/* this prevents the case where all three values are 0 */
+				while (true){
+					dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+					dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+					dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+					if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
+						break;
+					}
+				}
+
+				VReal normDir = dir.normalize(0, dir); // normalise vector
+
+				/* multiply by speed(radius) */
+				for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
+					disp[dim] += normDir[dim] * speed;
+				}
+			}
+
+			/* displacement due to cell shoving */
+			disp[0] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_X);
+			disp[1] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Y);
+			disp[2] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Z);
 		}
 
-		/* add cell shoving force */
-		disp[0] += mechIntrctData.getModelReal( CELL_MECH_REAL_FORCE_X );
-        	disp[1] += mechIntrctData.getModelReal( CELL_MECH_REAL_FORCE_Y );
-        	disp[2] += mechIntrctData.getModelReal( CELL_MECH_REAL_FORCE_Z );
-
-		for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
-			/* add random cell movement */
-			REAL force = SQRT(2 * CELL_DIFFUSION_COEFF[type] * BASELINE_TIME_STEP_DURATION);
-			disp[dim] += force * Util::getModelRand(MODEL_RNG_GAUSSIAN);
+		/* non chemokine affected lti cells that had a mechanical interaction previous step */
+		else if (mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_X) != 0 || mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Y) != 0
+		|| mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Z != 0)){
+			disp[0] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_X);
+			disp[1] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Y);
+			disp[2] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Z);
 		}
 
+		/* cells that did not have a mechanical interaction previous step; move cell to random direction,
+		this is same as picking a random point on a sphere with a radius of value of cell speed */
+		else {
+			VReal dir;
+
+			/* this prevents the case where all three values are 0 */
+			while (true){
+				dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
+					break;
+				}
+			}
+
+			VReal normDir = dir.normalize(0, dir); // normalise vector
+
+			/* multiply by speed(radius) */
+			for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
+				disp[dim] += normDir[dim] * speed;
+			}
+		}
 
 	}
 
+	/* prevents cell moving more than grid spacing */
 	for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
 		if (disp[dim] > IF_GRID_SPACING){
 			disp[dim] = IF_GRID_SPACING;

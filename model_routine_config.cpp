@@ -258,6 +258,10 @@ void ModelRoutine::updateSummaryOutputInfo( Vector<SummaryOutputInfo>& v_summary
 	info.type = SUMMARY_TYPE_MIN;
 	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_CHEMO_EXP_LVL] = info;
 
+	info.name = "LToAdhesionExpLvl";
+	info.type = SUMMARY_TYPE_MAX;
+	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_ADHESION_EXP_LVL] = info;
+
 	/* MODEL END */
 
 	return;

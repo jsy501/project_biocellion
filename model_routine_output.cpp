@@ -37,10 +37,6 @@ void ModelRoutine::updateSpAgentOutput( const VIdx& vIdx, const SpAgent& spAgent
 void ModelRoutine::updateSummaryVar( const VIdx& vIdx, const NbrUBAgentData& nbrUBAgentData, const NbrUBEnv& nbrUBEnv, Vector<REAL>& v_realVal/* [elemIdx] */, Vector<S32>& v_intVal/* [elemIdx] */ ) {
 	/* MODEL START */
 
-	// if (v_realVal[SUMMARY_REAL_LTO_POS_X] != 0 && v_realVal[SUMMARY_REAL_LTO_POS_Y] != 0 && v_realVal[SUMMARY_REAL_LTO_POS_Z] != 0){
-	// 	return;
-	// }
-
 	const UBAgentData& ubAgentData = *(nbrUBAgentData.getConstPtr(0,0,0));
 	for (S32 i = 0; i < (S32)ubAgentData.v_spAgent.size(); i++){
 		SpAgent agent = ubAgentData.v_spAgent[i];
@@ -56,9 +52,10 @@ void ModelRoutine::updateSummaryVar( const VIdx& vIdx, const NbrUBAgentData& nbr
 			v_realVal[SUMMARY_REAL_LTO_POS_Z] = ltoPos[2];
 
 			v_realVal[SUMMARY_REAL_LTO_CHEMO_EXP_LVL] = agent.state.getModelReal(CELL_MODEL_LTO_CHEMO_EXP_LVL);
+			v_realVal[SUMMARY_REAL_LTO_ADHESION_EXP_LVL] = agent.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL);
 
-			v_intVal[SUMMARY_INT_LTO_LTI_BIND_COUNT] = agent.state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT);
-			v_intVal[SUMMARY_INT_LTO_LTIN_BIND_COUNT] = agent.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT);
+			v_intVal[SUMMARY_INT_LTO_LTI_BIND_COUNT] = agent.state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL);
+			v_intVal[SUMMARY_INT_LTO_LTIN_BIND_COUNT] = agent.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL);
 
 			break;
 		}

@@ -35,81 +35,110 @@ void ModelRoutine::initJunctionSpAgent( const VIdx& vIdx0, const SpAgent& spAgen
 void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, const SpAgent& spAgent0, const UBEnv& ubEnv0, const VIdx& vIdx1, const SpAgent& spAgent1, const UBEnv& ubEnv1, const VReal& dir/* unit direction vector from spAgent1 to spAgent0 */, const REAL& dist, MechIntrctData& mechIntrctData0, MechIntrctData& mechIntrctData1, BOOL& link, JunctionEnd& end0/* dummy if link == false */, JunctionEnd& end1/* dummy if link == false */, BOOL& unlink ) {
 	/* MODEL START */
 
-	/* exit if two cells are bound already */
-	if (spAgent0.junctionData.isLinked(spAgent1.junctionData) == true){
-		return;
-	}
-
-        REAL R = spAgent0.state.getRadius() + spAgent1.state.getRadius();
-	REAL mag;
+	REAL radiusSum = spAgent0.state.getRadius() + spAgent1.state.getRadius();
+	REAL overlap = radiusSum - dist;
 
 	agentType_t type0 = spAgent0.state.getType();
 	agentType_t type1 = spAgent1.state.getType();
 
+	/* if two cells are linked already, calculate probability of prolonged adhesion */
+	if (spAgent0.junctionData.isLinked(spAgent1.junctionData) == true){
+		/* check if the cell0 is LTO cell */
+		if (type0 == CELL_TYPE_LTO){
+			if (spAgent0.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+				/* keep bond if probability is higher than random number */
+				link = true;
+			} else {
+				/* break bond if not and the cell moves away from Lto cell*/
+				WARNING("bond break")
+				link = false;
+				unlink = true;
+
+				mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, -dir[0] * overlap);
+				mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, -dir[1] * overlap);
+				mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, -dir[2] * overlap);
+			}
+		}
+
+		/* check if the cell1 is LTO cell */
+		else if (type1 == CELL_TYPE_LTO){
+			if (spAgent1.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+				link = true;
+			} else {
+				WARNING("bond break")
+				link = false;
+				unlink = true;
+
+				mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, dir[0] * overlap);
+				mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, dir[1] * overlap);
+				mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, dir[2] * overlap);
+			}
+		}
+
+		else {
+			ERROR("No bond should have formed between Lti and Ltin");
+		}
+		return;
+	}
+
 	/* cell contact */
-        if( dist <= R ) {
+	if(overlap >= 0) {
 		/* link the cells and set a junction if the contact is between LTi/LTin and LTo */
 		if (type0 == CELL_TYPE_LTO){
-			S32 ltinBindCount = spAgent0.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT);
+			/* check if it can have a stable bind */
+			if (STABLE_BIND_PROBABILITY >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+				/* get number of stable Ltin bind formed so far */
+				S32 ltinBindCount = spAgent0.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL);
 
-			if (type1 == CELL_TYPE_LTIN){
-				WARNING("LINK FORMED");
-				end0.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
-				end1.setType(JUNCTION_END_TYPE_LTIN_TO_LTO);
-				link = true;
-			}
+				if (type1 == CELL_TYPE_LTIN){
+					end0.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
+					end1.setType(JUNCTION_END_TYPE_LTIN_TO_LTO);
+					link = true;
+				}
 
-			else if (type1 == CELL_TYPE_LTI && ltinBindCount > 0){
-				WARNING("LINK FORMED");
-				end0.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
-				end1.setType(JUNCTION_END_TYPE_LTI_TO_LTO);
-				link = true;
-			}
-
-			else{
-				link = false;
+				/* Lti bind can be formed only when there was a stable Ltin bind formed before */
+				else if (type1 == CELL_TYPE_LTI && ltinBindCount > 0){
+					end0.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
+					end1.setType(JUNCTION_END_TYPE_LTI_TO_LTO);
+					link = true;
+				}
 			}
 		}
 
+		/* same for when cell1 is Lto */
 		else if (type1 == CELL_TYPE_LTO){
-			S32 ltinBindCount = spAgent1.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT);
+			if (STABLE_BIND_PROBABILITY >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+				S32 ltinBindCount = spAgent1.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL);
 
-			if (type0 == CELL_TYPE_LTIN){
-				WARNING("LINK FORMED");
-				end1.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
-				end0.setType(JUNCTION_END_TYPE_LTIN_TO_LTO);
-				link = true;
-			}
+				if (type0 == CELL_TYPE_LTIN){
+					end1.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
+					end0.setType(JUNCTION_END_TYPE_LTIN_TO_LTO);
+					link = true;
+				}
 
-			else if (type0 == CELL_TYPE_LTI && ltinBindCount > 0){
-				WARNING("LINK FORMED");
-				end1.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
-				end0.setType(JUNCTION_END_TYPE_LTI_TO_LTO);
-				link = true;
-			}
-
-			else{
-				link = false;
+				else if (type0 == CELL_TYPE_LTI && ltinBindCount > 0){
+					end1.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
+					end0.setType(JUNCTION_END_TYPE_LTI_TO_LTO);
+					link = true;
+				}
 			}
 		}
 
-		/* cell shoving */
-		else{
-			mag = CELL_SPRING_CONSTANT * ( R - dist );
-		}
-        }
+		/* cell shoving; cells that did not form stable bind will move away from the Lto */
+		mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, dir[0] * overlap);
+		mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, dir[1] * overlap);
+		mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, dir[2] * overlap);
+
+		mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, -dir[0] * overlap);
+		mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, -dir[1] * overlap);
+		mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, -dir[2] * overlap);
+	}
+
+	/* no contact */
 	else{
 		link =false;
 		unlink = false;
 	}
-
-	mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_X, dir[0] * mag);
-	mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_Y, dir[1] * mag);
-	mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_Z, dir[2] * mag);
-
-	mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_X, -dir[0] * mag);
-	mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_Y, -dir[1] * mag);
-	mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_Z, -dir[2] * mag);
 
 	/* MODEL END */
 

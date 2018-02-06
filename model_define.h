@@ -25,31 +25,35 @@ enum cell_type_e {
 };
 
 enum cell_model_lto_int_e{
-        CELL_MODEL_LTO_LTI_BIND_COUNT,
-        CELL_MODEL_LTO_LTIN_BIND_COUNT,
+        CELL_MODEL_LTO_LTI_BIND_COUNT_PREV, // number of stable bind formed between LTo and LTi previous step
+        CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL, // total number of stable bind formed between LTo and LTi regardless of prolonged contact
+        CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, // number of stable bind formed between LTo and LTin previous step
+        CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, // total number of stable bind formed between LTo and LTin regardless of prolonged contact
         NUM_CELL_MODEL_LTO_INTS
 };
 
 enum cell_model_lto_real_e{
+        CELL_MODEL_LTO_SPEED,
         CELL_MODEL_LTO_CHEMO_EXP_LVL,
+        CELL_MODEL_LTO_ADHESION_EXP_LVL,
         NUM_CELL_MODEL_LTO_REALS
 };
 
-/* not used at the moment */
 enum cell_model_lti_real_e{
+        CELL_MODEL_LTI_SPEED,
         NUM_CELL_MODEL_LTI_REALS
 };
 
-/* not used at the moment */
 enum cell_model_ltin_real_e{
+        CELL_MODEL_LTIN_SPEED,
         NUM_CELL_MODEL_LTIN_REALS
 };
 
-/* used for storing cell shoving force */
+/* used for storing cell displacement details*/
 enum cell_mech_real_e{
-        CELL_MECH_REAL_FORCE_X,
-        CELL_MECH_REAL_FORCE_Y,
-        CELL_MECH_REAL_FORCE_Z,
+        CELL_MECH_REAL_DISPLACEMENT_X,
+        CELL_MECH_REAL_DISPLACEMENT_Y,
+        CELL_MECH_REAL_DISPLACEMENT_Z,
         NUM_CELL_MECH_REALS
 };
 
@@ -77,6 +81,8 @@ enum summary_type_real_e {
 
         /* chemokine expression level of LTo cell */
         SUMMARY_REAL_LTO_CHEMO_EXP_LVL,
+
+        SUMMARY_REAL_LTO_ADHESION_EXP_LVL,
         NUM_SUMMARY_REALS
 };
 
@@ -88,17 +94,23 @@ enum summary_type_int_e{
 
 const S32 INI_N_CELLS[NUM_CELL_TYPES] = { 500, 500, 1 };
 const REAL CELL_RADIUS[NUM_CELL_TYPES] = {2.0, 2.0, 6.0};
-const REAL CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = {0.05, 0.05, 0};
 const REAL CELL_D_MAX[NUM_CELL_TYPES] = {3.0, 3.0, 10.0};
+const REAL CELL_SPEED_UPPER_BOUND = 2.2;
+const REAL CELL_SPEED_LOWER_BOUND = 0.95;
 
-const REAL LTO_CHEMO_EXP_MIN = 0.2; /* chemokine expression level for one LTi bind, therefore min */
-const REAL LTO_CHEMO_EXP_MAX = 0.04; /* chemokine expression level for fully saturated LTi bind, therefore max */
+const REAL LTO_CHEMO_EXP_MIN = 0.2; /* chemokine expression level for one LTi bind, used as a negative value therefore min */
+const REAL LTO_CHEMO_EXP_MAX = 0.04; /* chemokine expression level for fully saturated LTi bind, used as a negative value therefore max */
 const REAL LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT = 0.005; /* increase amount in LTo chemokine expression for every new LTi bind */
 const REAL LTI_CHEMO_THRESHOLD = 0.3; /* threshold that LTi cells react to chemokine */
 const REAL SIGMOID_CONSTANT = 10.0; /* sigmoid constand for adjusting the curve to meet y axis */
 
-const REAL CELL_ADHESION_CONSTANT = 0.8; /* cell adhesion constant*/
-const REAL CELL_SPRING_CONSTANT = 0.3; /*cell shoving constant*/
+const REAL STABLE_BIND_PROBABILITY = 0.5; /* probability of two cells having a stable bind when in contact */
+const REAL VCAM_SLOPE = 1.0;    /* gradient of linear vcam slop */
+const REAL VCAM_INCREMENT = 0.05; /* vcam increment per stable contact */
+const REAL MAX_VCAM_PROBABILITY_THRESHOLD = 0.65; /* maximum threshold for vcam value */
+
+const REAL LTO_INITIAL_ADHESION_LVL = 0;
+const REAL CELL_SPRING_CONSTANT = 0.1;
 
 const REAL IF_GRID_SPACING = 10.0;
 

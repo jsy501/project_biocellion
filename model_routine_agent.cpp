@@ -126,7 +126,7 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 	/* MODEL START */
 
 	/* count the number of Lti/Ltin bind to Lto and modify state of Lto */
-	if (state.getType() == CELL_TYPE_LTO){
+	if (state.getType() >= CELL_TYPE_LTO){
 		S32 previousLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV);
 		S32 previousLtinBindCount = state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV);
 		S32 totalLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL);
@@ -149,11 +149,11 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, ltinBindCount);
 
 		/* if bind count increased from previous step, add the difference to vcam count*/
-		if (previousLtiBindCount < ltiBindCount){
-			totalLtiBindCount += ltiBindCount - previousLtiBindCount;
-		}
 		if (previousLtinBindCount < ltinBindCount){
 			totalLtinBindCount += ltinBindCount - previousLtinBindCount;
+		}
+		if (previousLtiBindCount < ltiBindCount){
+			totalLtiBindCount += ltiBindCount - previousLtiBindCount;
 		}
 
 		/* update total count */

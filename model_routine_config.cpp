@@ -216,7 +216,10 @@ void ModelRoutine::updateFileOutputInfo( FileOutputInfo& fileOutputInfo ) {
 	/* MODEL START */
 
 	fileOutputInfo.particleOutput = true;
-	fileOutputInfo.v_particleExtraOutputScalarVarName.clear();
+	fileOutputInfo.v_particleExtraOutputScalarVarName.assign(NUM_EXTRA_OUTPUT_SCALAR, "");
+	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_POSITION_X] = "cellPosX";
+	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_POSITION_Y] = "cellPosY";
+	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_POSITION_Z] = "cellPosZ";
         fileOutputInfo.v_particleExtraOutputVectorVarName.clear();
         fileOutputInfo.v_gridPhiOutput.clear();
         fileOutputInfo.v_gridPhiOutputDivideByKappa.clear();

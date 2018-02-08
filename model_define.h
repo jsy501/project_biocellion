@@ -71,6 +71,12 @@ enum model_rng_type_e {
         NUM_MODEL_RNGS
 };
 
+enum extra_output_scalar_e{
+        OUTPUT_CELL_POSITION_X,
+        OUTPUT_CELL_POSITION_Y,
+        OUTPUT_CELL_POSITION_Z,
+        NUM_EXTRA_OUTPUT_SCALAR
+};
 
 /* summary output variables for getting information of LTo in agent update routines */
 enum summary_type_real_e {
@@ -82,11 +88,13 @@ enum summary_type_real_e {
         /* chemokine expression level of LTo cell */
         SUMMARY_REAL_LTO_CHEMO_EXP_LVL,
 
+        /* adhesion expression level of LTo cell */
         SUMMARY_REAL_LTO_ADHESION_EXP_LVL,
         NUM_SUMMARY_REALS
 };
 
 enum summary_type_int_e{
+        /* number of total stable binds formed regardless of prolonged contact */
         SUMMARY_INT_LTO_LTI_BIND_COUNT,
         SUMMARY_INT_LTO_LTIN_BIND_COUNT,
         NUM_SUMMARY_INTS

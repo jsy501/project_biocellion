@@ -26,59 +26,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 	if (init == true){
 		/*
-		Place LTi and LTin cells randomly in the grid
-		*/
-		for (S32 i = 0; i < INI_N_CELLS[CELL_TYPE_LTI]; i++){
-			VIdx vidx;
-			VReal vOffset;
-			SpAgentState state;
-
-			/* randomly place cells in one of the unit grid boxes*/
-			vidx[0] = (regionSize[0] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
-			vidx[1] = (regionSize[1] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
-			vidx[2] = (regionSize[2] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
-
-			/* randomly distribute cells within the unit grid box, (0,0,0) being the centre of the box */
-			vOffset[0] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
-			vOffset[1] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
-			vOffset[2] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
-
-			/* set cell parameters */
-			state.setType(CELL_TYPE_LTI);
-			state.setRadius(CELL_RADIUS[CELL_TYPE_LTI]);
-			state.setModelReal(CELL_MODEL_LTI_SPEED, Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND);
-
-			CHECK(ifGridHabitableBoxData.get(vidx) == true);
-			v_spAgentVIdx.push_back(vidx);
-			v_spAgentOffset.push_back( vOffset );
-			v_spAgentState.push_back(state);
-		}
-
-		for (S32 i = 0; i < INI_N_CELLS[CELL_TYPE_LTIN]; i++){
-			VIdx vidx;
-			VReal vOffset;
-			SpAgentState state;
-
-			vidx[0] = (regionSize[0] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
-			vidx[1] = (regionSize[1] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
-			vidx[2] = (regionSize[2] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
-
-			vOffset[0] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
-			vOffset[1] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
-			vOffset[2] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
-
-			state.setType(CELL_TYPE_LTIN);
-			state.setRadius(CELL_RADIUS[CELL_TYPE_LTIN]);
-			state.setModelReal(CELL_MODEL_LTIN_SPEED, Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND);
-
-			CHECK(ifGridHabitableBoxData.get(vidx) == true);
-			v_spAgentVIdx.push_back(vidx);
-			v_spAgentOffset.push_back( vOffset );
-			v_spAgentState.push_back(state);
-		}
-
-		/*
-		Place LTo cell in the middle of the grid
+		Place LTo cell in the middle of the grid at the beginning of simulation
 		*/
 
 		VIdx vidx;
@@ -109,6 +57,90 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 		v_spAgentState.push_back(state);
 	}
 
+	/* add H cells every baseline time at cell input rate */
+	else{
+		/*
+		add LTi and LTin cells randomly in the grid
+		*/
+
+		REAL totalHCells = (regionSize[0] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]) *
+		(regionSize[1] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]) *
+		(regionSize[2] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]);
+		REAL ltinInputNumE15 = (totalHCells / 100) * LTIN_CELL_PERCENTAGE;
+		REAL ltiInputNumE15 = (totalHCells / 100) * LTI_CELL_PERCENTAGE;
+		REAL ltinInputRate = ltinInputNumE15 / (24 * 60 * NUM_STEP_PER_MINUTE);
+		REAL ltiInputRate = ltiInputNumE15 / (24 * 60 * NUM_STEP_PER_MINUTE);
+
+		if (ltiInputRate - (S32)ltiInputRate >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+			WARNING("cell added");
+			ltiInputRate += 1;
+		}
+
+		if (ltinInputRate - (S32)ltinInputRate >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+			WARNING("cell added");
+			ltinInputRate += 1;
+		}
+
+		if (Info::getCurBaselineTimeStep() <= LTI_CELL_INPUT_TIME){
+			for (S32 i = 0; i < (S32)ltiInputRate; i++){
+				VIdx vidx;
+				VReal vOffset;
+				SpAgentState state;
+
+				/* randomly place cells in one of the unit grid boxes*/
+				vidx[0] = (regionSize[0] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+				vidx[1] = (regionSize[1] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+				vidx[2] = (regionSize[2] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+
+				/* randomly distribute cells within the unit grid box, (0,0,0) being the centre of the box */
+				vOffset[0] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+				vOffset[1] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+				vOffset[2] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+
+				/* set cell parameters */
+				state.setType(CELL_TYPE_LTI);
+				state.setRadius(CELL_RADIUS[CELL_TYPE_LTI]);
+
+				REAL speed = Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND;
+				state.setModelReal(CELL_MODEL_LTI_SPEED, speed / NUM_STEP_PER_MINUTE);
+				WARNING(speed);
+
+				CHECK(ifGridHabitableBoxData.get(vidx) == true);
+				v_spAgentVIdx.push_back(vidx);
+				v_spAgentOffset.push_back( vOffset );
+				v_spAgentState.push_back(state);
+			}
+		}
+
+		if (Info::getCurBaselineTimeStep() <= LTIN_CELL_INPUT_TIME){
+			for (S32 i = 0; i < (S32)ltinInputRate; i++){
+				VIdx vidx;
+				VReal vOffset;
+				SpAgentState state;
+
+				vidx[0] = (regionSize[0] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+				vidx[1] = (regionSize[1] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+				vidx[2] = (regionSize[2] - 1) * Util::getModelRand(MODEL_RNG_UNIFORM);
+
+				vOffset[0] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+				vOffset[1] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+				vOffset[2] = IF_GRID_SPACING * (Util::getModelRand(MODEL_RNG_UNIFORM) - 0.5);
+
+				state.setType(CELL_TYPE_LTIN);
+				state.setRadius(CELL_RADIUS[CELL_TYPE_LTIN]);
+
+				REAL speed = Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND;
+				state.setModelReal(CELL_MODEL_LTI_SPEED, speed / NUM_STEP_PER_MINUTE);
+				WARNING(speed);
+
+				CHECK(ifGridHabitableBoxData.get(vidx) == true);
+				v_spAgentVIdx.push_back(vidx);
+				v_spAgentOffset.push_back( vOffset );
+				v_spAgentState.push_back(state);
+			}
+		}
+	}
+
 	/* MODEL END */
 
 	return;
@@ -125,8 +157,10 @@ void ModelRoutine::spAgentCRNODERHS( const S32 odeNetIdx, const VIdx& vIdx, cons
 void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& junctionData, const VReal& vOffset, const NbrUBEnv& nbrUBEnv, SpAgentState& state/* INOUT */ ) {
 	/* MODEL START */
 
-	/* count the number of Lti/Ltin bind to Lto and modify state of Lto */
-	if (state.getType() >= CELL_TYPE_LTO){
+	agentType_t type = state.getType();
+
+	/* if the cell is LTo, count the number of Lti/Ltin bind to Lto and modify state of Lto */
+	if (type == CELL_TYPE_LTO){
 		S32 previousLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV);
 		S32 previousLtinBindCount = state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV);
 		S32 totalLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL);
@@ -175,6 +209,35 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 		}
 
 		state.setModelReal(CELL_MODEL_LTO_CHEMO_EXP_LVL, chemoLvl);
+	}
+
+	/* if the cell is an h cell */
+	else if (type == CELL_TYPE_LTI || type == CELL_TYPE_LTIN){
+		S32 moveCount = state.getModelInt(CELL_MODEL_LTI_MOVE_COUNT);
+
+		/* if the cell moved for a minute or was just added, give it a new random direction to move
+		this is same as picking a random point on a sphere with a radius of 1 */
+		if (moveCount == NUM_STEP_PER_MINUTE || moveCount == 0){
+			moveCount = 0;
+			VReal dir;
+
+			/* this prevents the case where all three values are 0 */
+			while (true){
+				dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
+					break;
+				}
+			}
+
+			VReal normDir = dir.normalize(0, dir); // normalise vector
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, dir[0]);
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, dir[1]);
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, dir[2]);
+		}
+
+		state.setModelInt(CELL_MODEL_LTI_MOVE_COUNT, moveCount + 1);
 	}
 
 	/* MODEL END */
@@ -249,71 +312,26 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 				/* add attraction movement to cell with probability model*/
 				if (chemoLvl >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-					for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
-						disp[dim] += speed * normDir[dim];
-					}
+					state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
+					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
+					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
 				}
-			}
-
-			/* if lower than minimum threshold, move randomly */
-			else {
-				VReal dir;
-
-				/* this prevents the case where all three values are 0 */
-				while (true){
-					dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-					dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-					dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-					if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
-						break;
-					}
-				}
-
-				VReal normDir = dir.normalize(0, dir); // normalise vector
-
-				/* multiply by speed(radius) */
-				for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
-					disp[dim] += normDir[dim] * speed;
-				}
-			}
-
-			/* displacement due to cell shoving */
-			disp[0] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_X);
-			disp[1] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Y);
-			disp[2] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Z);
-		}
-
-		/* non chemokine affected lti cells that had a mechanical interaction previous step */
-		else if (mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_X) != 0 || mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Y) != 0
-		|| mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Z != 0)){
-			disp[0] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_X);
-			disp[1] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Y);
-			disp[2] += mechIntrctData.getModelReal(CELL_MECH_REAL_DISPLACEMENT_Z);
-		}
-
-		/* cells that did not have a mechanical interaction previous step; move cell to random direction,
-		this is same as picking a random point on a sphere with a radius of value of cell speed */
-		else {
-			VReal dir;
-
-			/* this prevents the case where all three values are 0 */
-			while (true){
-				dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-				dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-				dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-				if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
-					break;
-				}
-			}
-
-			VReal normDir = dir.normalize(0, dir); // normalise vector
-
-			/* multiply by speed(radius) */
-			for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
-				disp[dim] += normDir[dim] * speed;
 			}
 		}
 
+		/* if the cell had a mechanical interaction previous step, change its direction to opposite to the collided agent */
+		if (mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_X) != 0 || mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Y) != 0
+		|| mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Z != 0)){
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_X));
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Y));
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Z));
+
+		}
+
+		/* continue its movement */
+		disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed;
+		disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed;
+		disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed;
 	}
 
 	/* prevents cell moving more than grid spacing */

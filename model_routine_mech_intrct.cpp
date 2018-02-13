@@ -44,7 +44,7 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 	/* if two cells are linked already, calculate probability of prolonged adhesion */
 	if (spAgent0.junctionData.isLinked(spAgent1.junctionData) == true){
 		/* check if the cell0 is LTO cell */
-		if (type0 >= CELL_TYPE_LTO){
+		if (type0 == CELL_TYPE_LTO){
 			if (spAgent0.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
 				/* keep bond if probability is higher than random number */
 				link = true;
@@ -54,14 +54,14 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 				link = false;
 				unlink = true;
 
-				mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, -dir[0] * overlap);
-				mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, -dir[1] * overlap);
-				mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, -dir[2] * overlap);
+				mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_X, -dir[0]);
+				mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Y, -dir[1]);
+				mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Z, -dir[2]);
 			}
 		}
 
 		/* check if the cell1 is LTO cell */
-		else if (type1 >= CELL_TYPE_LTO){
+		else if (type1 == CELL_TYPE_LTO){
 			if (spAgent1.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
 				link = true;
 			} else {
@@ -69,9 +69,9 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 				link = false;
 				unlink = true;
 
-				mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, dir[0] * overlap);
-				mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, dir[1] * overlap);
-				mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, dir[2] * overlap);
+				mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_X, dir[0]);
+				mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Y, dir[1]);
+				mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Z, dir[2]);
 			}
 		}
 
@@ -125,13 +125,13 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 		}
 
 		/* cell shoving; cells that did not form stable bind will move away from the Lto */
-		mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, dir[0] * overlap * 0.5);
-		mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, dir[1] * overlap * 0.5);
-		mechIntrctData0.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, dir[2] * overlap * 0.5);
+		mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_X, dir[0]);
+		mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Y, dir[1]);
+		mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Z, dir[2]);
 
-		mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_X, -dir[0] * overlap * 0.5);
-		mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Y, -dir[1] * overlap * 0.5);
-		mechIntrctData1.setModelReal( CELL_MECH_REAL_DISPLACEMENT_Z, -dir[2] * overlap * 0.5);
+		mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_X, -dir[0]);
+		mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Y, -dir[1]);
+		mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Z, -dir[2]);
 	}
 
 	/* no contact */

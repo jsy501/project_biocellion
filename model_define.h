@@ -39,21 +39,37 @@ enum cell_model_lto_real_e{
         NUM_CELL_MODEL_LTO_REALS
 };
 
+enum cell_model_lti_int_e{
+        CELL_MODEL_LTI_MOVE_COUNT,
+        NUM_CELL_MODEL_LTI_INTS
+};
+
 enum cell_model_lti_real_e{
         CELL_MODEL_LTI_SPEED,
+        CELL_MODEL_LTI_DIRECTION_X,
+        CELL_MODEL_LTI_DIRECTION_Y,
+        CELL_MODEL_LTI_DIRECTION_Z,
         NUM_CELL_MODEL_LTI_REALS
+};
+
+enum cell_model_ltin_int_e{
+        CELL_MODEL_LTIN_MOVE_COUNT,
+        NUM_CELL_MODEL_LTIN_INTS
 };
 
 enum cell_model_ltin_real_e{
         CELL_MODEL_LTIN_SPEED,
+        CELL_MODEL_LTIN_DIRECTION_X,
+        CELL_MODEL_LTIN_DIRECTION_Y,
+        CELL_MODEL_LTIN_DIRECTION_Z,
         NUM_CELL_MODEL_LTIN_REALS
 };
 
 /* used for storing cell displacement details*/
 enum cell_mech_real_e{
-        CELL_MECH_REAL_DISPLACEMENT_X,
-        CELL_MECH_REAL_DISPLACEMENT_Y,
-        CELL_MECH_REAL_DISPLACEMENT_Z,
+        CELL_MECH_REAL_DIRECTION_X,
+        CELL_MECH_REAL_DIRECTION_Y,
+        CELL_MECH_REAL_DIRECTION_Z,
         NUM_CELL_MECH_REALS
 };
 
@@ -78,7 +94,7 @@ enum extra_output_scalar_e{
         NUM_EXTRA_OUTPUT_SCALAR
 };
 
-/* summary output variables for getting information of LTo in agent update routines */
+/* summary output variables act as global variables. Used for getting information of LTo in agent update routines */
 enum summary_type_real_e {
         /* position of LTo cell from origin(bottom left corner of the grid) */
         SUMMARY_REAL_LTO_POS_X,
@@ -100,11 +116,21 @@ enum summary_type_int_e{
         NUM_SUMMARY_INTS
 };
 
-const S32 INI_N_CELLS[NUM_CELL_TYPES] = { 500, 500, 1 };
-const REAL CELL_RADIUS[NUM_CELL_TYPES] = {2.0, 2.0, 6.0};
-const REAL CELL_D_MAX[NUM_CELL_TYPES] = {3.0, 3.0, 10.0};
-const REAL CELL_SPEED_UPPER_BOUND = 2.2;
-const REAL CELL_SPEED_LOWER_BOUND = 0.95;
+const REAL BASELINE_TIME_STEP_DURATION = 5; /* duration of one basline time step; second */
+const REAL NUM_STEP_PER_MINUTE = 60 / BASELINE_TIME_STEP_DURATION;
+
+/* cell presence percentage obtained from FACS(Fluorescence-activated cell sorting) at E15.5.
+        required for calculating cell input rate */
+const REAL LTIN_CELL_PERCENTAGE = 0.45;
+const REAL LTI_CELL_PERCENTAGE = 0.37;
+
+const S32 LTIN_CELL_INPUT_TIME = 24 * 60 * NUM_STEP_PER_MINUTE; /* time length before LTin cell migration ceases; step */
+const S32 LTI_CELL_INPUT_TIME = 72 * 60 * NUM_STEP_PER_MINUTE; /* time length before cell migration ceases; step */
+
+const REAL CELL_RADIUS[NUM_CELL_TYPES] = {8.0, 8.0, 24.0}; /* cell radius; micron */
+const REAL CELL_MAX_INTERACTION_DISTANCE[NUM_CELL_TYPES] = {8.0, 8.0, 24.0}; /* maximum distance for physical cell interaction; micron */
+const REAL CELL_SPEED_UPPER_BOUND = 8.8; /* upper bound for cell speed; microns per minute */
+const REAL CELL_SPEED_LOWER_BOUND = 3.8; /* lower bound for cell speed; microns per minute */
 
 const REAL LTO_CHEMO_EXP_MIN = 0.2; /* chemokine expression level for one LTi bind, used as a negative value therefore min */
 const REAL LTO_CHEMO_EXP_MAX = 0.04; /* chemokine expression level for fully saturated LTi bind, used as a negative value therefore max */
@@ -120,9 +146,9 @@ const REAL MAX_VCAM_PROBABILITY_THRESHOLD = 0.65; /* maximum threshold for vcam 
 const REAL LTO_INITIAL_ADHESION_LVL = 0;
 const REAL CELL_SPRING_CONSTANT = 0.1;
 
-const REAL IF_GRID_SPACING = 10.0;
-
-const REAL BASELINE_TIME_STEP_DURATION = 10.0;
+/* Biocellion domain is made of cubes with edge length of IF_GRID_SPACING;
+therefore 1 grid unit is made of 50 1 micon long cubes, ie 50 microns in length*/
+const REAL IF_GRID_SPACING = 30.0;
 
 const S32 NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE = 1;
 

@@ -60,20 +60,16 @@ void ModelRoutine::updateSummaryVar( const VIdx& vIdx, const NbrUBAgentData& nbr
 	for (S32 i = 0; i < (S32)ubAgentData.v_spAgent.size(); i++){
 		SpAgent agent = ubAgentData.v_spAgent[i];
 		if (agent.state.getType() == CELL_TYPE_LTO){
-			//prevents calculating LTo cell position every loop
-			if (v_realVal[SUMMARY_REAL_LTO_POS_X] == 0 && v_realVal[SUMMARY_REAL_LTO_POS_Y] == 0 && v_realVal[SUMMARY_REAL_LTO_POS_Z] == 0){
-				VReal ltoPos;
+			VReal ltoPos;
 
-				/* get absolute coordinates for LTo cell */
-				for (S32 i = 0; i < SYSTEM_DIMENSION; i++){
-					// ltoPos[i] = vIdx[i] * IF_GRID_SPACING + agent.vOffset[i] + IF_GRID_SPACING * 0.5;
-					Util::changePosFormat2LvTo1Lv(vIdx, agent.vOffset, ltoPos);
-				}
-
-				v_realVal[SUMMARY_REAL_LTO_POS_X] = ltoPos[0];
-				v_realVal[SUMMARY_REAL_LTO_POS_Y] = ltoPos[1];
-				v_realVal[SUMMARY_REAL_LTO_POS_Z] = ltoPos[2];
+			/* get absolute coordinates of LTo cell */
+			for (S32 i = 0; i < SYSTEM_DIMENSION; i++){
+				Util::changePosFormat2LvTo1Lv(vIdx, agent.vOffset, ltoPos);
 			}
+
+			v_realVal[SUMMARY_REAL_LTO_POS_X] = ltoPos[0];
+			v_realVal[SUMMARY_REAL_LTO_POS_Y] = ltoPos[1];
+			v_realVal[SUMMARY_REAL_LTO_POS_Z] = ltoPos[2];
 
 			v_realVal[SUMMARY_REAL_LTO_CHEMO_EXP_LVL] = agent.state.getModelReal(CELL_MODEL_LTO_CHEMO_EXP_LVL);
 			v_realVal[SUMMARY_REAL_LTO_ADHESION_EXP_LVL] = agent.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL);

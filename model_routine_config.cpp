@@ -104,25 +104,26 @@ void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* s
 	for (S32 i = 0; i < NUM_CELL_TYPES; i++){
 		SpAgentInfo info;
 
-		info.dMax = CELL_D_MAX[i]; /* maximum direct physio-mechanical interaction distance */
+		info.dMax = CELL_MAX_INTERACTION_DISTANCE[i]; /* maximum direct physio-mechanical interaction distance */
 
 		/*
 		The interface grid spacing should be equal to or larger than the maximum
 		direct physico-mechanical interaction distance between any two discrete agents.
 		*/
-		// CHECK( info.dMax <= IF_GRID_SPACING );
+		CHECK( info.dMax <= IF_GRID_SPACING );
 
 		info.numBoolVars = 0;
-		info.numStateModelInts = 0;
 
 		if (i == CELL_TYPE_LTO){
 			info.numStateModelInts = NUM_CELL_MODEL_LTO_INTS;
 	                info.numStateModelReals = NUM_CELL_MODEL_LTO_REALS;
 		}
 		else if (i == CELL_TYPE_LTI){
+			info.numStateModelInts = NUM_CELL_MODEL_LTI_INTS;
 			info.numStateModelReals = NUM_CELL_MODEL_LTI_REALS;
 		}
 		else if (i == CELL_TYPE_LTIN){
+			info.numStateModelInts = NUM_CELL_MODEL_LTIN_INTS;
 			info.numStateModelReals = NUM_CELL_MODEL_LTIN_REALS;
 		}
 

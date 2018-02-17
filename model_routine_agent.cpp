@@ -25,9 +25,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 	/* MODEL START */
 
 	if (init == true){
-		/*
-		Place LTo cell in the middle of the grid at the beginning of simulation
-		*/
+		/* Place LTo cell in the middle of the grid at the beginning of simulation */
 
 		VIdx vidx;
 		VReal vOffset;
@@ -53,36 +51,37 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 		CHECK(ifGridHabitableBoxData.get(vidx) == true);
 		v_spAgentVIdx.push_back(vidx);
-		v_spAgentOffset.push_back( vOffset );
+		v_spAgentOffset.push_back(vOffset);
 		v_spAgentState.push_back(state);
 	}
 
 	/* add H cells every baseline time at cell input rate */
 	else{
-		/*
-		add LTi and LTin cells randomly in the grid
-		*/
 
 		REAL totalHCells = (regionSize[0] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]) *
 		(regionSize[1] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]) *
 		(regionSize[2] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]);
 		REAL ltinInputNumE15 = (totalHCells / 100) * LTIN_CELL_PERCENTAGE;
 		REAL ltiInputNumE15 = (totalHCells / 100) * LTI_CELL_PERCENTAGE;
+
 		REAL ltinInputRate = ltinInputNumE15 / (24 * 60 * NUM_STEP_PER_MINUTE);
 		REAL ltiInputRate = ltiInputNumE15 / (24 * 60 * NUM_STEP_PER_MINUTE);
+		REAL ltinInputRemainder = ltinInputRate - (S32)ltinInputRate;
+		REAL ltiInputRemainder = ltiInputRate - (S32)ltiInputRate;
 
-		if (ltiInputRate - (S32)ltiInputRate >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-			WARNING("cell added");
-			ltiInputRate += 1;
+		/* if flag is greater than 1, add 1 additional cell and subtract 1 from flag*/
+		if (ltinInputRemainder >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+			ltinInputRate += 1;
 		}
 
-		if (ltinInputRate - (S32)ltinInputRate >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-			WARNING("cell added");
-			ltinInputRate += 1;
+		if (ltiInputRemainder >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+			ltiInputRate += 1;
 		}
 
 		if (Info::getCurBaselineTimeStep() <= LTI_CELL_INPUT_TIME){
 			for (S32 i = 0; i < (S32)ltiInputRate; i++){
+				WARNING("lti cell added");
+
 				VIdx vidx;
 				VReal vOffset;
 				SpAgentState state;
@@ -114,6 +113,8 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 		if (Info::getCurBaselineTimeStep() <= LTIN_CELL_INPUT_TIME){
 			for (S32 i = 0; i < (S32)ltinInputRate; i++){
+				WARNING("ltin cell added");
+
 				VIdx vidx;
 				VReal vOffset;
 				SpAgentState state;
@@ -213,31 +214,32 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 
 	/* if the cell is an h cell */
 	else if (type == CELL_TYPE_LTI || type == CELL_TYPE_LTIN){
-		S32 moveCount = state.getModelInt(CELL_MODEL_LTI_MOVE_COUNT);
+		/* get how many times it moved with current direction */
+		REAL moveLeft = state.getModelReal(CELL_MODEL_LTI_MOVE_LEFT);
 
 		/* if the cell moved for a minute or was just added, give it a new random direction to move
 		this is same as picking a random point on a sphere with a radius of 1 */
-		if (moveCount == NUM_STEP_PER_MINUTE || moveCount == 0){
-			moveCount = 0;
+		if (moveLeft == 0){
+			moveLeft = NUM_STEP_PER_MINUTE;
 			VReal dir;
 
-			/* this prevents the case where all three values are 0 */
 			while (true){
 				dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
 				dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
 				dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				/* this prevents the case where all three values are 0 */
 				if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
 					break;
 				}
 			}
 
 			VReal normDir = dir.normalize(0, dir); // normalise vector
-			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, dir[0]);
-			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, dir[1]);
-			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, dir[2]);
-		}
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
 
-		state.setModelInt(CELL_MODEL_LTI_MOVE_COUNT, moveCount + 1);
+			state.setModelReal(CELL_MODEL_LTI_MOVE_LEFT, moveLeft);
+		}
 	}
 
 	/* MODEL END */
@@ -301,6 +303,7 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 			Util::changePosFormat2LvTo1Lv(vIdx, vOffset, ltiPos);
 
+			/* get vector direction */
 			dir = ltoPos - ltiPos;
 
 			/* equation for chemokine level at the position of the LTi cell */
@@ -310,11 +313,31 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 			if (chemoLvl > LTI_CHEMO_THRESHOLD){
 				VReal normDir = dir.normalize(0, dir); /* normalised direction vector from LTi to LTo */
 
-				/* add attraction movement to cell with probability model*/
+				/* set move direction to LTo cell with probability model using chemokine level*/
 				if (chemoLvl >= Util::getModelRand(MODEL_RNG_UNIFORM)){
 					state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
 					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
 					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
+				}
+
+				/* if not affected, set random move direction */
+				else {
+					while (true){
+						dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+						dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+						dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+						/* this prevents the case where all three values are 0 */
+						if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
+							break;
+						}
+					}
+
+					VReal normDir = dir.normalize(0, dir); // normalise vector
+					state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
+					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
+					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
+
+					state.setModelReal(CELL_MODEL_LTI_MOVE_LEFT, NUM_STEP_PER_MINUTE);
 				}
 			}
 		}
@@ -328,10 +351,23 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 		}
 
-		/* continue its movement */
-		disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed;
-		disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed;
-		disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed;
+		REAL moveLeft = state.getModelReal(CELL_MODEL_LTI_MOVE_LEFT);
+
+		if (moveLeft >= 1){
+			/* continue its movement */
+			disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed;
+			disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed;
+			disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed;
+			moveLeft -= 1;
+		} else {
+			/* use fraction of movement step left if num of step per minute is not a whole number*/
+			disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed * moveLeft;
+			disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed * moveLeft;
+			disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed * moveLeft;
+			moveLeft = 0;
+		}
+
+		state.setModelReal(CELL_MODEL_LTI_MOVE_LEFT, moveLeft);
 	}
 
 	/* prevents cell moving more than grid spacing */

@@ -40,7 +40,6 @@ enum cell_model_lto_real_e{
 };
 
 enum cell_model_lti_int_e{
-        CELL_MODEL_LTI_MOVE_COUNT,
         NUM_CELL_MODEL_LTI_INTS
 };
 
@@ -49,11 +48,11 @@ enum cell_model_lti_real_e{
         CELL_MODEL_LTI_DIRECTION_X,
         CELL_MODEL_LTI_DIRECTION_Y,
         CELL_MODEL_LTI_DIRECTION_Z,
+        CELL_MODEL_LTI_MOVE_LEFT,
         NUM_CELL_MODEL_LTI_REALS
 };
 
 enum cell_model_ltin_int_e{
-        CELL_MODEL_LTIN_MOVE_COUNT,
         NUM_CELL_MODEL_LTIN_INTS
 };
 
@@ -62,6 +61,7 @@ enum cell_model_ltin_real_e{
         CELL_MODEL_LTIN_DIRECTION_X,
         CELL_MODEL_LTIN_DIRECTION_Y,
         CELL_MODEL_LTIN_DIRECTION_Z,
+        CELL_MODEL_LTIN_MOVE_LEFT,
         NUM_CELL_MODEL_LTIN_REALS
 };
 
@@ -116,7 +116,7 @@ enum summary_type_int_e{
         NUM_SUMMARY_INTS
 };
 
-const REAL BASELINE_TIME_STEP_DURATION = 5; /* duration of one basline time step; second */
+const REAL BASELINE_TIME_STEP_DURATION = 10; /* duration of one basline time step; second */
 const REAL NUM_STEP_PER_MINUTE = 60 / BASELINE_TIME_STEP_DURATION;
 
 /* cell presence percentage obtained from FACS(Fluorescence-activated cell sorting) at E15.5.
@@ -144,7 +144,6 @@ const REAL VCAM_INCREMENT = 0.05; /* vcam increment per stable contact */
 const REAL MAX_VCAM_PROBABILITY_THRESHOLD = 0.65; /* maximum threshold for vcam value */
 
 const REAL LTO_INITIAL_ADHESION_LVL = 0;
-const REAL CELL_SPRING_CONSTANT = 0.1;
 
 /* Biocellion domain is made of cubes with edge length of IF_GRID_SPACING;
 therefore 1 grid unit is made of 50 1 micon long cubes, ie 50 microns in length*/

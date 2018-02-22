@@ -212,36 +212,6 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 		state.setModelReal(CELL_MODEL_LTO_CHEMO_EXP_LVL, chemoLvl);
 	}
 
-	/* if the cell is an h cell */
-	else if (type == CELL_TYPE_LTI || type == CELL_TYPE_LTIN){
-		/* get how many times it moved with current direction */
-		REAL moveLeft = state.getModelReal(CELL_MODEL_LTI_MOVE_LEFT);
-
-		/* if the cell moved for a minute or was just added, give it a new random direction to move
-		this is same as picking a random point on a sphere with a radius of 1 */
-		if (moveLeft == 0){
-			moveLeft = NUM_STEP_PER_MINUTE;
-			VReal dir;
-
-			while (true){
-				dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-				dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-				dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-				/* this prevents the case where all three values are 0 */
-				if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
-					break;
-				}
-			}
-
-			VReal normDir = dir.normalize(0, dir); // normalise vector
-			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
-			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
-			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
-
-			state.setModelReal(CELL_MODEL_LTI_MOVE_LEFT, moveLeft);
-		}
-	}
-
 	/* MODEL END */
 
 	return;
@@ -289,60 +259,73 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 	/* move if the cell is not connected to any other cells */
 	if (speed > 0 && junctionData.getNumJunctions() == 0){
+		/* get how many times it moved with current direction */
+		REAL moveLeft = state.getModelReal(CELL_MODEL_LTI_MOVE_LEFT);
 
-		/* if the current cell is LTi and there was at least one LTo-LTin bond and one LTo-LTi bond formed before, move LTi cell towards LTo cell under the effect of chemokine*/
-		if (type == CELL_TYPE_LTI && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTIN_BIND_COUNT) > 0 && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTI_BIND_COUNT) > 0){
-			VReal ltoPos;
-			VReal ltiPos;
+		/* if the cell moved for a minute or was just added, give it a new random direction to move
+		this is same as picking a random point on a sphere with a radius of 1 */
+		if (moveLeft == 0){
 			VReal dir;
-			REAL ltoChemoExpLvl = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_CHEMO_EXP_LVL);
 
-			ltoPos[0] = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_POS_X);
-			ltoPos[1] = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_POS_Y);
-			ltoPos[2] = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_POS_Z);
-
-			Util::changePosFormat2LvTo1Lv(vIdx, vOffset, ltiPos);
-
-			/* get vector direction */
-			dir = ltoPos - ltiPos;
-
-			/* equation for chemokine level at the position of the LTi cell */
-			REAL chemoLvl = 1 / (1 + exp(-(ltoChemoExpLvl * dir.length() + SIGMOID_CONSTANT)));
-
-			/* if chemokine expression is higher than the minimum threshold that Lti cells respond to */
-			if (chemoLvl > LTI_CHEMO_THRESHOLD){
-				VReal normDir = dir.normalize(0, dir); /* normalised direction vector from LTi to LTo */
-
-				/* set move direction to LTo cell with probability model using chemokine level*/
-				if (chemoLvl >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-					state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
-					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
-					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
-				}
-
-				/* if not affected, set random move direction */
-				else {
-					while (true){
-						dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-						dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-						dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-						/* this prevents the case where all three values are 0 */
-						if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
-							break;
-						}
-					}
-
-					VReal normDir = dir.normalize(0, dir); // normalise vector
-					state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
-					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
-					state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
-
-					state.setModelReal(CELL_MODEL_LTI_MOVE_LEFT, NUM_STEP_PER_MINUTE);
+			while (true){
+				dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+				/* this prevents the case where all three values are 0 */
+				if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
+					break;
 				}
 			}
+
+			VReal normDir = dir.normalize(0, dir); // normalise vector
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
+			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
+
+
+			/* if the current cell is LTi and there was at least one LTo-LTin bond and one LTo-LTi bond formed before,
+			 set direction of LTi cell towards LTo cell under the effect of chemokine.
+			 This check will happen every minute */
+			if (type == CELL_TYPE_LTI && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTIN_BIND_COUNT) > 0 &&
+				Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTI_BIND_COUNT) > 0){
+				VReal ltoPos;
+				VReal ltiPos;
+				VReal dir;
+				REAL ltoChemoExpLvl = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_CHEMO_EXP_LVL);
+
+				ltoPos[0] = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_POS_X);
+				ltoPos[1] = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_POS_Y);
+				ltoPos[2] = Info::getRecentSummaryRealVal(SUMMARY_REAL_LTO_POS_Z);
+
+				Util::changePosFormat2LvTo1Lv(vIdx, vOffset, ltiPos);
+
+				/* get vector direction */
+				dir = ltoPos - ltiPos;
+
+				/* equation for chemokine level at the position of the LTi cell */
+				REAL chemoLvl = 1 / (1 + exp(-(ltoChemoExpLvl * dir.length() + SIGMOID_CONSTANT)));
+
+				/* if chemokine expression is higher than the minimum threshold that Lti cells respond to */
+				if (chemoLvl > LTI_CHEMO_THRESHOLD){
+					VReal normDir = dir.normalize(0, dir); /* normalised direction vector from LTi to LTo */
+
+					/* set move direction to LTo cell with probability model using chemokine level*/
+					if (chemoLvl >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+						state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, normDir[0]);
+						state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, normDir[1]);
+						state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, normDir[2]);
+					}
+
+					/* if not affected, the cell will move in random direction as set above */
+				}
+			}
+
+			// reset move count
+			moveLeft = NUM_STEP_PER_MINUTE;
 		}
 
-		/* if the cell had a mechanical interaction previous step, change its direction to opposite to the collided agent */
+		/* if the cell had a mechanical interaction previous step, change its direction to opposite to the collided agent
+		This will take priority over any direction changes*/
 		if (mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_X) != 0 || mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Y) != 0
 		|| mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Z != 0)){
 			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_X));
@@ -351,10 +334,9 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 		}
 
-		REAL moveLeft = state.getModelReal(CELL_MODEL_LTI_MOVE_LEFT);
 
+		/* move cell using its speed and direction */
 		if (moveLeft >= 1){
-			/* continue its movement */
 			disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed;
 			disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed;
 			disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed;

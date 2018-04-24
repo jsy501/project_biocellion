@@ -43,41 +43,87 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 
 	/* if two cells are linked already, calculate probability of prolonged adhesion */
 	if (spAgent0.junctionData.isLinked(spAgent1.junctionData) == true){
+		// OUTPUT(2, "bondCheck");
 		/* check if the cell0 is LTO cell */
 		if (type0 == CELL_TYPE_LTO){
-			if (spAgent0.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-				/* keep bond if probability is higher than random number */
-				link = true;
-			} else {
-				/* break bond if not and the cell moves away from Lto cell*/
-				WARNING("bond break")
-				link = false;
-				unlink = true;
+			JunctionEnd junctionEnd = spAgent1.junctionData.getJunctionEndRef(0);
+			S32 bondStepRemain = junctionEnd.getModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN);
+			/* bond check must happen every minute */
+			if (bondStepRemain == 0){
+				if (spAgent0.state.getModelReal(CELL_MODEL_LTO_PROLONGED_ADHESION_PROB) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+					/* keep bond if probability is higher than random number */
+					link = true;
+					end1.setType(junctionEnd.getType());
+					end1.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, NUM_STEP_PER_MINUTE);
+					if (type1 == CELL_TYPE_LTI){
+						end0.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
+					} else {
+						end0.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
+					}
 
-				mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_X, -dir[0]);
-				mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Y, -dir[1]);
-				mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Z, -dir[2]);
+				} else {
+					/* break bond if not and the cell moves away from Lto cell*/
+					link = false;
+					unlink = true;
+
+					mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_X, -dir[0]);
+					mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Y, -dir[1]);
+					mechIntrctData1.setModelReal( CELL_MECH_REAL_DIRECTION_Z, -dir[2]);
+				}
+			}
+			else{
+				link = true;
+				end1.setType(junctionEnd.getType());
+				end1.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, bondStepRemain - 1);
+				if (type1 == CELL_TYPE_LTI){
+					end0.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
+				} else {
+					end0.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
+				}
 			}
 		}
 
-		/* check if the cell1 is LTO cell */
+		/* same for when cell1 is LTO cell */
 		else if (type1 == CELL_TYPE_LTO){
-			if (spAgent1.state.getModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
-				link = true;
-			} else {
-				WARNING("bond break")
-				link = false;
-				unlink = true;
+			JunctionEnd junctionEnd = spAgent0.junctionData.getJunctionEndRef(0);
+			S32 bondStepRemain = junctionEnd.getModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN);
+			if (bondStepRemain == 0){
+				if (spAgent1.state.getModelReal(CELL_MODEL_LTO_PROLONGED_ADHESION_PROB) >= Util::getModelRand(MODEL_RNG_UNIFORM)){
+					link = true;
+					end0.setType(junctionEnd.getType());
+					end0.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, NUM_STEP_PER_MINUTE);
+					if (type0 == CELL_TYPE_LTI){
+						end1.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
+					} else {
+						end1.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
+					}
+				} else {
+					link = false;
+					unlink = true;
 
-				mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_X, dir[0]);
-				mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Y, dir[1]);
-				mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Z, dir[2]);
+					mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_X, dir[0]);
+					mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Y, dir[1]);
+					mechIntrctData0.setModelReal( CELL_MECH_REAL_DIRECTION_Z, dir[2]);
+				}
+			}
+			else{
+				link = true;
+				end0.setType(junctionEnd.getType());
+				end0.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, bondStepRemain - 1);
+				if (type1 == CELL_TYPE_LTI){
+					end1.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
+				} else {
+					end1.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
+				}
 			}
 		}
 
 		else {
 			ERROR("No bond should have formed between Lti and Ltin");
 		}
+
+		// OUTPUT(2, "bondCheckEnd");
+
 		return;
 	}
 
@@ -91,16 +137,20 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 				S32 ltinBindCount = spAgent0.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL);
 
 				if (type1 == CELL_TYPE_LTIN){
+					OUTPUT(2, "LTin bond formed");
+					link = true;
 					end0.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
 					end1.setType(JUNCTION_END_TYPE_LTIN_TO_LTO);
-					link = true;
+					end1.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, NUM_STEP_PER_MINUTE);
 				}
 
 				/* Lti bind can be formed only when there was a stable Ltin bind formed before */
 				else if (type1 == CELL_TYPE_LTI && ltinBindCount > 0){
+					OUTPUT(2, "LTi bond formed");
+					link = true;
 					end0.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
 					end1.setType(JUNCTION_END_TYPE_LTI_TO_LTO);
-					link = true;
+					end1.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, NUM_STEP_PER_MINUTE);
 				}
 			}
 		}
@@ -111,15 +161,19 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 				S32 ltinBindCount = spAgent1.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL);
 
 				if (type0 == CELL_TYPE_LTIN){
+					OUTPUT(2, "LTin bond formed");
+					link = true;
 					end1.setType(JUNCTION_END_TYPE_LTO_TO_LTIN);
 					end0.setType(JUNCTION_END_TYPE_LTIN_TO_LTO);
-					link = true;
+					end0.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, NUM_STEP_PER_MINUTE);
 				}
 
 				else if (type0 == CELL_TYPE_LTI && ltinBindCount > 0){
+					OUTPUT(2, "LTi bond formed");
+					link = true;
 					end1.setType(JUNCTION_END_TYPE_LTO_TO_LTI);
 					end0.setType(JUNCTION_END_TYPE_LTI_TO_LTO);
-					link = true;
+					end0.setModelInt(JUNCTION_END_H_TO_LTO_BOND_REMAIN, NUM_STEP_PER_MINUTE);
 				}
 			}
 		}

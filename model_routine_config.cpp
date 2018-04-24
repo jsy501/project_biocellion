@@ -150,13 +150,13 @@ void ModelRoutine::updateJunctionEndInfo( Vector<JunctionEndInfo>& v_junctionEnd
 	v_junctionEndInfo.resize(NUM_JUNCTION_END_TYPES);
 
 	v_junctionEndInfo[JUNCTION_END_TYPE_LTI_TO_LTO].numModelReals = 0;
-	v_junctionEndInfo[JUNCTION_END_TYPE_LTI_TO_LTO].numModelInts = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTI_TO_LTO].numModelInts = NUM_JUNCTION_END_H_TO_LTO_INTS;
 
 	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTI].numModelReals = 0;
 	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTI].numModelInts = 0;
 
 	v_junctionEndInfo[JUNCTION_END_TYPE_LTIN_TO_LTO].numModelReals = 0;
-	v_junctionEndInfo[JUNCTION_END_TYPE_LTIN_TO_LTO].numModelInts = 0;
+	v_junctionEndInfo[JUNCTION_END_TYPE_LTIN_TO_LTO].numModelInts = NUM_JUNCTION_END_H_TO_LTO_INTS;
 
 	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTIN].numModelReals = 0;
 	v_junctionEndInfo[JUNCTION_END_TYPE_LTO_TO_LTIN].numModelInts = 0;
@@ -264,7 +264,7 @@ void ModelRoutine::updateSummaryOutputInfo( Vector<SummaryOutputInfo>& v_summary
 
 	info.name = "LToAdhesionExpLvl";
 	info.type = SUMMARY_TYPE_MAX;
-	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_ADHESION_EXP_LVL] = info;
+	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_PROLONGED_ADHESION_PROB] = info;
 
 	/* MODEL END */
 

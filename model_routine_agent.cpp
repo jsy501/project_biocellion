@@ -24,6 +24,7 @@ using namespace std;
 void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VIdx& regionSize, const IfGridBoxData<BOOL>& ifGridHabitableBoxData, Vector<VIdx>& v_spAgentVIdx, Vector<SpAgentState>& v_spAgentState, Vector<VReal>& v_spAgentOffset ) {/* initialization */
 	/* MODEL START */
 
+	OUTPUT(2, "cellInput");
 	if (init == true){
 		/* Place LTo cell in the middle of the grid at the beginning of simulation */
 
@@ -43,7 +44,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 		state.setRadius(CELL_RADIUS[CELL_TYPE_LTO]);
 		state.setModelReal(CELL_MODEL_LTO_SPEED, 0);	// Assumes that LTo cell does not move
 		state.setModelReal(CELL_MODEL_LTO_CHEMO_EXP_LVL, LTO_CHEMO_EXP_MIN);
-		state.setModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL, LTO_INITIAL_ADHESION_LVL);
+		state.setModelReal(CELL_MODEL_LTO_PROLONGED_ADHESION_PROB, LTO_INITIAL_ADHESION_LVL);
 		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV, 0);
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, 0);
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, 0);
@@ -80,8 +81,6 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 		if (Info::getCurBaselineTimeStep() <= LTI_CELL_INPUT_TIME){
 			for (S32 i = 0; i < (S32)ltiInputRate; i++){
-				WARNING("lti cell added");
-
 				VIdx vidx;
 				VReal vOffset;
 				SpAgentState state;
@@ -102,7 +101,6 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 				REAL speed = Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND;
 				state.setModelReal(CELL_MODEL_LTI_SPEED, speed / NUM_STEP_PER_MINUTE);
-				WARNING(speed);
 
 				CHECK(ifGridHabitableBoxData.get(vidx) == true);
 				v_spAgentVIdx.push_back(vidx);
@@ -113,8 +111,6 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 		if (Info::getCurBaselineTimeStep() <= LTIN_CELL_INPUT_TIME){
 			for (S32 i = 0; i < (S32)ltinInputRate; i++){
-				WARNING("ltin cell added");
-
 				VIdx vidx;
 				VReal vOffset;
 				SpAgentState state;
@@ -132,7 +128,6 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 				REAL speed = Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND;
 				state.setModelReal(CELL_MODEL_LTI_SPEED, speed / NUM_STEP_PER_MINUTE);
-				WARNING(speed);
 
 				CHECK(ifGridHabitableBoxData.get(vidx) == true);
 				v_spAgentVIdx.push_back(vidx);
@@ -162,6 +157,7 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 
 	/* if the cell is LTo, count the number of Lti/Ltin bind to Lto and modify state of Lto */
 	if (type == CELL_TYPE_LTO){
+		OUTPUT(2, "updateCellState");
 		S32 previousLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV);
 		S32 previousLtinBindCount = state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV);
 		S32 totalLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL);
@@ -183,7 +179,7 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV, ltiBindCount);
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, ltinBindCount);
 
-		/* if bind count increased from previous step, add the difference to vcam count*/
+		/* if bind count increased from previous step, add the difference to total bind count which is used for vcam expression*/
 		if (previousLtinBindCount < ltinBindCount){
 			totalLtinBindCount += ltinBindCount - previousLtinBindCount;
 		}
@@ -191,17 +187,22 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 			totalLtiBindCount += ltiBindCount - previousLtiBindCount;
 		}
 
+		// /* update active step count */
+		// if (totalLtinBindCount > 0){
+		// 	state.incModelInt(CELL_MODEL_LTO_NUM_ACTIVE_STEPS, 1);
+		// }
+
 		/* update total count */
 		state.setModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL, totalLtiBindCount);
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, totalLtinBindCount);
 
-		REAL adhesionLvl = VCAM_SLOPE * VCAM_INCREMENT * (totalLtiBindCount + totalLtinBindCount);
+		REAL probability = VCAM_SLOPE * VCAM_INCREMENT * (totalLtiBindCount + totalLtinBindCount);
 
-		if (adhesionLvl > MAX_VCAM_PROBABILITY_THRESHOLD){
-			adhesionLvl = MAX_VCAM_PROBABILITY_THRESHOLD;
+		if (probability > MAX_VCAM_PROBABILITY_THRESHOLD){
+			probability = MAX_VCAM_PROBABILITY_THRESHOLD;
 		}
 
-		state.setModelReal(CELL_MODEL_LTO_ADHESION_EXP_LVL, adhesionLvl);
+		state.setModelReal(CELL_MODEL_LTO_PROLONGED_ADHESION_PROB, probability);
 
 		/* equation for chemokine expression of LTo cell */
 		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT * totalLtiBindCount;
@@ -228,8 +229,20 @@ void ModelRoutine::spAgentSecretionBySpAgent( const VIdx& vIdx, const JunctionDa
 void ModelRoutine::updateSpAgentBirthDeath( const VIdx& vIdx, const SpAgent& spAgent, const MechIntrctData& mechIntrctData, const NbrUBEnv& nbrUBEnv, BOOL& divide, BOOL& disappear ) {
 	/* MODEL START */
 
+	// /* if the cell is LTo and reached division time after activation, set divide parameter true */
+	// if (spAgent.state.getType() == CELL_TYPE_LTO){
+	// 	S32 activeStep = spAgent.state.getModelInt(CELL_MODEL_LTO_NUM_ACTIVE_STEPS);
+	// 	if (activeStep > 0 && activeStep % LTO_DIVISION_TIME == 0){
+	// 		divide = true;
+	// 		disappear = false;
+	// 	}
+	// } else{
+	// 	divide = false;
+	// 	disappear = false;
+	// }
+
 	divide = false;
-        disappear = false;
+	disappear =false;
 
 	/* MODEL END */
 
@@ -259,12 +272,13 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 	/* move if the cell is not connected to any other cells */
 	if (speed > 0 && junctionData.getNumJunctions() == 0){
-		/* get how many times it moved with current direction */
-		REAL moveLeft = state.getModelReal(CELL_MODEL_LTI_MOVE_LEFT);
+		/* get how many times it moved with current direction
+		CELL_MODEL_LTI_MOVE_REMAIN is in the same index as CELL_MODEL_LTIN_MOVE_REMAIN so either can be used */
+		S32 moveRemain = state.getModelInt(CELL_MODEL_LTI_MOVE_REMAIN);
 
 		/* if the cell moved for a minute or was just added, give it a new random direction to move
 		this is same as picking a random point on a sphere with a radius of 1 */
-		if (moveLeft == 0){
+		if (moveRemain == 0){
 			VReal dir;
 
 			while (true){
@@ -321,7 +335,7 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 			}
 
 			// reset move count
-			moveLeft = NUM_STEP_PER_MINUTE;
+			moveRemain = NUM_STEP_PER_MINUTE;
 		}
 
 		/* if the cell had a mechanical interaction previous step, change its direction to opposite to the collided agent
@@ -331,25 +345,16 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 			state.setModelReal(CELL_MODEL_LTI_DIRECTION_X, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_X));
 			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Y, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Y));
 			state.setModelReal(CELL_MODEL_LTI_DIRECTION_Z, mechIntrctData.getModelReal(CELL_MECH_REAL_DIRECTION_Z));
-
 		}
 
 
 		/* move cell using its speed and direction */
-		if (moveLeft >= 1){
-			disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed;
-			disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed;
-			disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed;
-			moveLeft -= 1;
-		} else {
-			/* use fraction of movement step left if num of step per minute is not a whole number*/
-			disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed * moveLeft;
-			disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed * moveLeft;
-			disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed * moveLeft;
-			moveLeft = 0;
-		}
+		disp[0] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_X) * speed;
+		disp[1] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Y) * speed;
+		disp[2] += state.getModelReal(CELL_MODEL_LTI_DIRECTION_Z) * speed;
+		moveRemain -= 1;
 
-		state.setModelReal(CELL_MODEL_LTI_MOVE_LEFT, moveLeft);
+		state.setModelInt(CELL_MODEL_LTI_MOVE_REMAIN, moveRemain);
 	}
 
 	/* prevents cell moving more than grid spacing */
@@ -369,6 +374,43 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 
 void ModelRoutine::divideSpAgent( const VIdx& vIdx, const JunctionData& junctionData, const VReal& vOffset, const MechIntrctData& mechIntrctData, const NbrUBEnv& nbrUBEnv, SpAgentState& motherState/* INOUT */, VReal& motherDisp, SpAgentState& daughterState, VReal& daughterDisp, Vector<BOOL>& v_junctionDivide, BOOL& motherDaughterLinked, JunctionEnd& motherEnd, JunctionEnd& daughterEnd ) {
 	/* MODEL START */
+
+	// /* copy all model variables from mother to daughter cell */
+	// daughterState.setType(motherState.getType());
+	// daughterState.setRadius(motherState.getRadius());
+	//
+	// for (S32 i = 0; i < NUM_CELL_MODEL_LTO_REALS; i++){
+	// 	daughterState.setModelReal(i, motherState.getModelReal(i));
+	// }
+	//
+	// for (S32 i = 0; i < NUM_CELL_MODEL_LTO_INTS; i++){
+	// 	daughterState.setModelInt(i, motherState.getModelInt(i));
+	// }
+	//
+	// WARNING("check");
+	// /* get random direction for cell division; daughter cell will be created at this direction */
+	// VReal dir;
+	// while (true){
+	// 	dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+	// 	dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+	// 	dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
+	// 	/* this prevents the case where all three values are 0 */
+	// 	if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
+	// 		break;
+	// 	}
+	// }
+	// VReal normDir = dir.normalize(0, dir); // normalise vector
+	//
+	// REAL separationDis = motherState.getRadius() * 0.5;
+	// for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
+	// 	motherDisp[dim] = -dir[dim] * separationDis;
+	// }
+	//
+	// for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++){
+	// 	daughterDisp[dim] = dir[dim] * separationDis;
+	// }
+	//
+	// motherDaughterLinked = false;
 
 	/* MODEL END */
 

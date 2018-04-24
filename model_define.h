@@ -29,17 +29,19 @@ enum cell_model_lto_int_e{
         CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL, // total number of stable bind formed between LTo and LTi regardless of prolonged contact
         CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, // number of stable bind formed between LTo and LTin previous step
         CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, // total number of stable bind formed between LTo and LTin regardless of prolonged contact
+        // CELL_MODEL_LTO_NUM_ACTIVE_STEPS, // total number of steps that LTo cell has been active i.e. number of steps after inital LTin contact
         NUM_CELL_MODEL_LTO_INTS
 };
 
 enum cell_model_lto_real_e{
         CELL_MODEL_LTO_SPEED,
         CELL_MODEL_LTO_CHEMO_EXP_LVL,
-        CELL_MODEL_LTO_ADHESION_EXP_LVL,
+        CELL_MODEL_LTO_PROLONGED_ADHESION_PROB,
         NUM_CELL_MODEL_LTO_REALS
 };
 
 enum cell_model_lti_int_e{
+        CELL_MODEL_LTI_MOVE_REMAIN,
         NUM_CELL_MODEL_LTI_INTS
 };
 
@@ -48,11 +50,11 @@ enum cell_model_lti_real_e{
         CELL_MODEL_LTI_DIRECTION_X,
         CELL_MODEL_LTI_DIRECTION_Y,
         CELL_MODEL_LTI_DIRECTION_Z,
-        CELL_MODEL_LTI_MOVE_LEFT,
         NUM_CELL_MODEL_LTI_REALS
 };
 
 enum cell_model_ltin_int_e{
+        CELL_MODEL_LTIN_MOVE_REMAIN,
         NUM_CELL_MODEL_LTIN_INTS
 };
 
@@ -61,7 +63,6 @@ enum cell_model_ltin_real_e{
         CELL_MODEL_LTIN_DIRECTION_X,
         CELL_MODEL_LTIN_DIRECTION_Y,
         CELL_MODEL_LTIN_DIRECTION_Z,
-        CELL_MODEL_LTIN_MOVE_LEFT,
         NUM_CELL_MODEL_LTIN_REALS
 };
 
@@ -74,11 +75,17 @@ enum cell_mech_real_e{
 };
 
 enum junction_end_type_e{
-        JUNCTION_END_TYPE_LTIN_TO_LTO, /* junction between LTin cell and LTo cell, LTin side. */
+        JUNCTION_END_TYPE_LTIN_TO_LTO, /* junction between LTin cell and LTo cell, LTin cell side. NOT USED*/
         JUNCTION_END_TYPE_LTO_TO_LTIN, /* junction between LTin cell and LTo cell, LTo side. */
-        JUNCTION_END_TYPE_LTI_TO_LTO, /* junction between LTi cell and LTo cell, LTi side. */
+
+        JUNCTION_END_TYPE_LTI_TO_LTO, /* junction between LTi cell and LTo cell, LTi cell side. NOT USED*/
         JUNCTION_END_TYPE_LTO_TO_LTI, /* junction between LTi cell and LTo cell, LTo side. */
         NUM_JUNCTION_END_TYPES
+};
+
+enum junction_end_h_to_lto_int_e{
+        JUNCTION_END_H_TO_LTO_BOND_REMAIN,
+        NUM_JUNCTION_END_H_TO_LTO_INTS
 };
 
 enum model_rng_type_e {
@@ -104,8 +111,8 @@ enum summary_type_real_e {
         /* chemokine expression level of LTo cell */
         SUMMARY_REAL_LTO_CHEMO_EXP_LVL,
 
-        /* adhesion expression level of LTo cell */
-        SUMMARY_REAL_LTO_ADHESION_EXP_LVL,
+        /* probability of prolonged adhesion */
+        SUMMARY_REAL_LTO_PROLONGED_ADHESION_PROB,
         NUM_SUMMARY_REALS
 };
 
@@ -116,8 +123,8 @@ enum summary_type_int_e{
         NUM_SUMMARY_INTS
 };
 
-const REAL BASELINE_TIME_STEP_DURATION = 10; /* duration of one basline time step; second */
-const REAL NUM_STEP_PER_MINUTE = 60 / BASELINE_TIME_STEP_DURATION;
+const S32 BASELINE_TIME_STEP_DURATION = 10; /* duration of one basline time step, must be a factor of 60; second */
+const S32 NUM_STEP_PER_MINUTE = 60 / BASELINE_TIME_STEP_DURATION;
 
 /* cell presence percentage obtained from FACS(Fluorescence-activated cell sorting) at E15.5.
         required for calculating cell input rate */
@@ -126,6 +133,7 @@ const REAL LTI_CELL_PERCENTAGE = 0.37;
 
 const S32 LTIN_CELL_INPUT_TIME = 24 * 60 * NUM_STEP_PER_MINUTE; /* time length before LTin cell migration ceases; step */
 const S32 LTI_CELL_INPUT_TIME = 72 * 60 * NUM_STEP_PER_MINUTE; /* time length before cell migration ceases; step */
+// const S32 LTO_DIVISION_TIME = 12 * 60 * NUM_STEP_PER_MINUTE; /* time needed for an LTo cell to divide after activation; step */
 
 const REAL CELL_RADIUS[NUM_CELL_TYPES] = {8.0, 8.0, 24.0}; /* cell radius; micron */
 const REAL CELL_MAX_INTERACTION_DISTANCE[NUM_CELL_TYPES] = {8.0, 8.0, 24.0}; /* maximum distance for physical cell interaction; micron */
@@ -146,7 +154,7 @@ const REAL MAX_VCAM_PROBABILITY_THRESHOLD = 0.65; /* maximum threshold for vcam 
 const REAL LTO_INITIAL_ADHESION_LVL = 0;
 
 /* Biocellion domain is made of cubes with edge length of IF_GRID_SPACING;
-therefore 1 grid unit is made of 50 1 micon long cubes, ie 50 microns in length*/
+therefore 1 grid unit is made of 30 1 micon long cubes, ie 30 microns in length*/
 const REAL IF_GRID_SPACING = 30.0;
 
 const S32 NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE = 1;

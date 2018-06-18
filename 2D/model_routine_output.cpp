@@ -26,23 +26,41 @@ void ModelRoutine::updateSpAgentOutput( const VIdx& vIdx, const SpAgent& spAgent
 
 	color = spAgent.state.getType();
 
+	REAL speed;
+	S32 id;
+
 	/* change LTo color depending on its state; immature, vcam expressed, chemokine expressed */
-	if (color == CELL_TYPE_LTO){
-		if (spAgent.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL) > 0){
-			color++;
-			if (spAgent.state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL) > 0){
+	switch (spAgent.state.getType()) {
+		case CELL_TYPE_LTO:{
+			if (spAgent.state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL) > 0){
 				color++;
+				if (spAgent.state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL) > 0){
+					color++;
+				}
 			}
+			speed = spAgent.state.getModelReal(CELL_MODEL_LTO_SPEED);
+			id = spAgent.state.getModelInt(CELL_MODEL_LTO_ID);
+			break;
+		}
+
+		case CELL_TYPE_LTI:{
+			speed = spAgent.state.getModelReal(CELL_MODEL_LTI_SPEED);
+			id = spAgent.state.getModelInt(CELL_MODEL_LTI_ID);
+			break;
+		}
+
+		case CELL_TYPE_LTIN:{
+			speed = spAgent.state.getModelReal(CELL_MODEL_LTIN_SPEED);
+			id = spAgent.state.getModelInt(CELL_MODEL_LTIN_ID);
+			break;
 		}
 	}
 
 	CHECK( v_extraScalar.size() == NUM_EXTRA_OUTPUT_SCALAR );
 
-	VReal cellPos;
-	Util::changePosFormat2LvTo1Lv(vIdx, spAgent.vOffset, cellPos);
-
-	v_extraScalar[OUTPUT_CELL_POSITION_X] = cellPos[0];
-	v_extraScalar[OUTPUT_CELL_POSITION_Y] = cellPos[1];
+	v_extraScalar[OUTPUT_CELL_ID] = id;
+	v_extraScalar[OUTPUT_CELL_TYPE] = spAgent.state.getType();
+	v_extraScalar[OUTPUT_CELL_SPEED] = speed * NUM_STEP_PER_MINUTE;
 
       	CHECK( v_extraVector.size() == 0 );
 
@@ -56,10 +74,13 @@ void ModelRoutine::updateSummaryVar( const VIdx& vIdx, const NbrUBAgentData& nbr
 	/* MODEL START */
 
 	const UBAgentData& ubAgentData = *(nbrUBAgentData.getConstPtr(0,0,0));
+
+	v_intVal[SUMMARY_INT_CELL_COUNT] = (S32)ubAgentData.v_spAgent.size();
+
 	for (S32 i = 0; i < (S32)ubAgentData.v_spAgent.size(); i++){
 		SpAgent agent = ubAgentData.v_spAgent[i];
 		if (agent.state.getType() == CELL_TYPE_LTO){
-			OUTPUT(2, "updateSummary");
+			// OUTPUT(2, "updateSummary");
 			VReal ltoPos;
 
 			/* get absolute coordinates of LTo cell */

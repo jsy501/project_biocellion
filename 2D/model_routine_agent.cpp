@@ -24,7 +24,9 @@ using namespace std;
 void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VIdx& regionSize, const IfGridBoxData<BOOL>& ifGridHabitableBoxData, Vector<VIdx>& v_spAgentVIdx, Vector<SpAgentState>& v_spAgentState, Vector<VReal>& v_spAgentOffset ) {/* initialization */
 	/* MODEL START */
 
-	OUTPUT(2, "cellInput");
+	S32 cellCount = Info::getRecentSummaryIntVal(SUMMARY_INT_CELL_COUNT);
+
+	// OUTPUT(2, "cellInput");
 	if (init == true){
 		/* Place LTo cell in the middle of the grid at the beginning of simulation */
 
@@ -49,17 +51,20 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV, 0);
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, 0);
 		state.setModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_TOTAL, 0);
+		state.setModelInt(CELL_MODEL_LTO_ID, cellCount);
 
 		CHECK(ifGridHabitableBoxData.get(vidx) == true);
 		v_spAgentVIdx.push_back(vidx);
 		v_spAgentOffset.push_back(vOffset);
 		v_spAgentState.push_back(state);
+
+		cellCount++;
 	}
 
 	/* add H cells every baseline time at cell input rate */
 	else{
 
-		REAL totalHCells = (regionSize[0] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]) * (regionSize[1] * IF_GRID_SPACING / CELL_RADIUS[CELL_TYPE_LTIN]);
+		REAL totalHCells = (regionSize[0] * IF_GRID_SPACING / (CELL_RADIUS[CELL_TYPE_LTIN] * 2)) * (regionSize[1] * IF_GRID_SPACING / (CELL_RADIUS[CELL_TYPE_LTIN] * 2));
 		REAL ltinInputNumE15 = (totalHCells / 100) * LTIN_CELL_PERCENTAGE;
 		REAL ltiInputNumE15 = (totalHCells / 100) * LTI_CELL_PERCENTAGE;
 
@@ -77,7 +82,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 			ltiInputRate += 1;
 		}
 
-		if (Info::getCurBaselineTimeStep() <= LTI_CELL_INPUT_TIME){
+		if (Info::getCurBaselineTimeStep() <= LTI_CELL_INPUT_TIME * NUM_STEP_PER_MINUTE){
 			for (S32 i = 0; i < (S32)ltiInputRate; i++){
 				VIdx vidx;
 				VReal vOffset;
@@ -99,15 +104,18 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 				REAL speed = Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND;
 				state.setModelReal(CELL_MODEL_LTI_SPEED, speed / NUM_STEP_PER_MINUTE);
+				state.setModelInt(CELL_MODEL_LTI_ID, cellCount);
 
 				CHECK(ifGridHabitableBoxData.get(vidx) == true);
 				v_spAgentVIdx.push_back(vidx);
 				v_spAgentOffset.push_back( vOffset );
 				v_spAgentState.push_back(state);
+
+				cellCount++;
 			}
 		}
 
-		if (Info::getCurBaselineTimeStep() <= LTIN_CELL_INPUT_TIME){
+		if (Info::getCurBaselineTimeStep() <= LTIN_CELL_INPUT_TIME * NUM_STEP_PER_MINUTE){
 			for (S32 i = 0; i < (S32)ltinInputRate; i++){
 				VIdx vidx;
 				VReal vOffset;
@@ -126,11 +134,14 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 				REAL speed = Util::getModelRand(MODEL_RNG_UNIFORM) * (CELL_SPEED_UPPER_BOUND - CELL_SPEED_LOWER_BOUND) + CELL_SPEED_LOWER_BOUND;
 				state.setModelReal(CELL_MODEL_LTI_SPEED, speed / NUM_STEP_PER_MINUTE);
+				state.setModelInt(CELL_MODEL_LTIN_ID, cellCount);
 
 				CHECK(ifGridHabitableBoxData.get(vidx) == true);
 				v_spAgentVIdx.push_back(vidx);
 				v_spAgentOffset.push_back( vOffset );
 				v_spAgentState.push_back(state);
+
+				cellCount++;
 			}
 		}
 	}
@@ -155,7 +166,7 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 
 	/* if the cell is LTo, count the number of Lti/Ltin bind to Lto and modify state of Lto */
 	if (type == CELL_TYPE_LTO){
-		OUTPUT(2, "updateCellState");
+		// OUTPUT(2, "updateCellState");
 		S32 previousLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_PREV);
 		S32 previousLtinBindCount = state.getModelInt(CELL_MODEL_LTO_LTIN_BIND_COUNT_PREV);
 		S32 totalLtiBindCount = state.getModelInt(CELL_MODEL_LTO_LTI_BIND_COUNT_TOTAL);
@@ -196,14 +207,14 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 
 		REAL probability = VCAM_SLOPE * VCAM_INCREMENT * (totalLtiBindCount + totalLtinBindCount);
 
-		if (probability > MAX_VCAM_PROBABILITY_THRESHOLD){
-			probability = MAX_VCAM_PROBABILITY_THRESHOLD;
+		if (probability > MAX_VCAM_PROB_THRESHOLD){
+			probability = MAX_VCAM_PROB_THRESHOLD;
 		}
 
 		state.setModelReal(CELL_MODEL_LTO_PROLONGED_ADHESION_PROB, probability);
 
 		/* equation for chemokine expression of LTo cell */
-		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT * totalLtiBindCount;
+		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT * totalLtiBindCount;
 		if (chemoLvl > -LTO_CHEMO_EXP_MAX){
 			chemoLvl = -LTO_CHEMO_EXP_MAX;
 		}
@@ -278,16 +289,6 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 		if (moveRemain == 0){
 			VReal randDir;
 
-			// while (true){
-			// 	dir[0] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-			// 	dir[1] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-			// 	dir[2] = Util::getModelRand(MODEL_RNG_GAUSSIAN);
-			// 	/* this prevents the case where all three values are 0 */
-			// 	if (dir[0] != 0 || dir[1] != 0 || dir[2] != 0){
-			// 		break;
-			// 	}
-			// }
-
 			S32 degree = Util::getModelRand(MODEL_RNG_UNIFORM) * 360;
 			REAL radian = degree * M_PI / 180;
 
@@ -303,8 +304,7 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
 			/* if the current cell is LTi and there was at least one LTo-LTin bond and one LTo-LTi bond formed before,
 			 set direction of LTi cell towards LTo cell under the effect of chemokine.
 			 This check will happen every minute */
-			if (type == CELL_TYPE_LTI && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTIN_BIND_COUNT) > 0 &&
-				Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTI_BIND_COUNT) > 0){
+			if (type == CELL_TYPE_LTI && Info::getRecentSummaryIntVal(SUMMARY_INT_LTO_LTI_BIND_COUNT) > 0){
 				VReal ltoPos;
 				VReal ltiPos;
 				VReal dir;

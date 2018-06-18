@@ -142,14 +142,14 @@ const REAL CELL_SPEED_LOWER_BOUND = 3.8; /* lower bound for cell speed; microns 
 
 const REAL LTO_CHEMO_EXP_MIN = 0.2; /* chemokine expression level for one LTi bind, used as a negative value therefore min */
 const REAL LTO_CHEMO_EXP_MAX = 0.04; /* chemokine expression level for fully saturated LTi bind, used as a negative value therefore max */
-const REAL LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT = 0.005; /* increase amount in LTo chemokine expression for every new LTi bind */
+const REAL LTO_CHEMO_EXP_INCREMENT = 0.005; /* increase amount in LTo chemokine expression for every new LTi bind */
 const REAL LTI_CHEMO_THRESHOLD = 0.3; /* threshold that LTi cells react to chemokine */
 const REAL SIGMOID_CONSTANT = 10.0; /* sigmoid constand for adjusting the curve to meet y axis */
 
 const REAL STABLE_BIND_PROBABILITY = 0.5; /* probability of two cells having a stable bind when in contact */
 const REAL VCAM_SLOPE = 1.0;    /* gradient of linear vcam slop */
 const REAL VCAM_INCREMENT = 0.05; /* vcam increment per stable contact */
-const REAL MAX_VCAM_PROBABILITY_THRESHOLD = 0.65; /* maximum threshold for vcam value */
+const REAL MAX_VCAM_PROB_THRESHOLD = 0.65; /* maximum threshold for vcam value */
 
 const REAL LTO_INITIAL_ADHESION_LVL = 0;
 

@@ -218,8 +218,9 @@ void ModelRoutine::updateFileOutputInfo( FileOutputInfo& fileOutputInfo ) {
 
 	fileOutputInfo.particleOutput = true;
 	fileOutputInfo.v_particleExtraOutputScalarVarName.assign(NUM_EXTRA_OUTPUT_SCALAR, "");
-	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_POSITION_X] = "cellPosX";
-	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_POSITION_Y] = "cellPosY";
+	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_ID] = "cellID";
+	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_TYPE] = "cellType";
+	fileOutputInfo.v_particleExtraOutputScalarVarName[OUTPUT_CELL_SPEED] = "cellSpeed";
         fileOutputInfo.v_particleExtraOutputVectorVarName.clear();
         fileOutputInfo.v_gridPhiOutput.clear();
         fileOutputInfo.v_gridPhiOutputDivideByKappa.clear();
@@ -245,6 +246,10 @@ void ModelRoutine::updateSummaryOutputInfo( Vector<SummaryOutputInfo>& v_summary
 	info.type = SUMMARY_TYPE_MAX;
 	v_summaryOutputIntInfo[SUMMARY_INT_LTO_LTIN_BIND_COUNT] = info;
 
+	info.name = "CellCount";
+	info.type = SUMMARY_TYPE_SUM;
+	v_summaryOutputIntInfo[SUMMARY_INT_CELL_COUNT] = info;
+
 	info.name = "LToPosX";
 	info.type = SUMMARY_TYPE_MAX;
 	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_POS_X] = info;
@@ -257,9 +262,9 @@ void ModelRoutine::updateSummaryOutputInfo( Vector<SummaryOutputInfo>& v_summary
 	info.type = SUMMARY_TYPE_MIN;
 	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_CHEMO_EXP_LVL] = info;
 
-	info.name = "LToAdhesionExpLvl";
-	info.type = SUMMARY_TYPE_MAX;
-	v_summaryOutputRealInfo[SUMMARY_REAL_LTO_PROLONGED_ADHESION_PROB] = info;
+	// info.name = "LToAdhesionExpLvl";
+	// info.type = SUMMARY_TYPE_MAX;
+	// v_summaryOutputRealInfo[SUMMARY_REAL_LTO_PROLONGED_ADHESION_PROB] = info;
 
 	/* MODEL END */
 

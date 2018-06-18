@@ -198,14 +198,14 @@ void ModelRoutine::updateSpAgentState( const VIdx& vIdx, const JunctionData& jun
 
 		REAL probability = VCAM_SLOPE * VCAM_INCREMENT * (totalLtiBindCount + totalLtinBindCount);
 
-		if (probability > MAX_VCAM_PROBABILITY_THRESHOLD){
-			probability = MAX_VCAM_PROBABILITY_THRESHOLD;
+		if (probability > MAX_VCAM_PROB_THRESHOLD){
+			probability = MAX_VCAM_PROB_THRESHOLD;
 		}
 
 		state.setModelReal(CELL_MODEL_LTO_PROLONGED_ADHESION_PROB, probability);
 
 		/* equation for chemokine expression of LTo cell */
-		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT_PER_LTI_CONTACT * totalLtiBindCount;
+		REAL chemoLvl = -LTO_CHEMO_EXP_MIN + LTO_CHEMO_EXP_INCREMENT * totalLtiBindCount;
 		if (chemoLvl > -LTO_CHEMO_EXP_MAX){
 			chemoLvl = -LTO_CHEMO_EXP_MAX;
 		}
